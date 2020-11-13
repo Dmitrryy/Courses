@@ -164,7 +164,6 @@ int main (int argc, char* argv[])
 
         } while (cur_sim != EOF);
 
-        printf("\n");
 
         waitpid(is_parent, NULL, 0);
     }
