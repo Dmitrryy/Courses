@@ -108,7 +108,6 @@ int main (int argc, char* argv[])
         char cont = 1;
         while(1)
         {
-
             cont = read(df_source, &cur_s, sizeof(char));
             if (cont <= 0) {
                 kill(ppid, SIGUSR1);
@@ -117,7 +116,6 @@ int main (int argc, char* argv[])
             else {
                 kill(ppid, SIGUSR2);
             }
-
             sigsuspend(&ssus_mask);
 
             for (int i = 0; i < 8; i++)
@@ -130,10 +128,8 @@ int main (int argc, char* argv[])
                 else {
                     kill(ppid, SIGUSR2);
                 }
-
                 sigsuspend(&ssus_mask);
             }//for
-
 
         }//while
 
