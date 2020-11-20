@@ -15,10 +15,12 @@
 #include <sys/prctl.h>
 
 int getBit(char sim_, int num_);
+void printBit(char sim_);
 void nop() {}
 
 int cur_bit_ = 0;
 
+#define NDEBUG
 
 void SigHandler(int sig_)
 {
@@ -104,8 +106,20 @@ int main (int argc, char* argv[])
         sigdelset(&ssus_mask, SIGUSR1);
         sigdelset(&ssus_mask, SIGTERM);
 
-        while(read(df_source, &cur_s, sizeof(char)) > 0)
+        char cont = 1;
+        while(cont)
         {
+
+            cont = read(df_source, &cur_s, sizeof(char));
+            if (cont <= 0) {
+                kill(ppid, SIGUSR1);
+                break;
+            }
+            else {
+                kill(ppid, SIGUSR2);
+            }
+
+            sigsuspend(&ssus_mask);
 
             for (int i = 0; i < 8; i++)
             {
@@ -117,38 +131,34 @@ int main (int argc, char* argv[])
                 else {
                     kill(ppid, SIGUSR2);
                 }
+
                 sigsuspend(&ssus_mask);
-            }
-        }
+            }//for
 
-        cur_s = EOF;
-        for (int i = 0; i < 8; i++)
-        {
-            int bit = getBit(cur_s, i);
 
-            if (bit == 0) {
-                kill(ppid, SIGUSR1);
-            }
-            else {
-                kill(ppid, SIGUSR2);
-            }
-            sigsuspend(&ssus_mask);
-        }
+        }//while
 
         return 0;
     }
     else if (is_parent > 0)
     {//is parent
-        sigset_t ssus_mask;
+        sigset_t ssus_mask = {};
         sigfillset(&ssus_mask);
         sigdelset(&ssus_mask, SIGUSR1);
         sigdelset(&ssus_mask, SIGUSR2);
         sigdelset(&ssus_mask, SIGTERM);
+        sigdelset(&ssus_mask, SIGSTOP);
         sigdelset(&ssus_mask, SIGCHLD);
 
         char cur_sim = 0;
         do {
             cur_sim = 0;
+
+            sigsuspend(&ssus_mask);
+            if (cur_bit_ == 0) {
+                break;
+            }
+            kill(is_parent, SIGUSR1);
 
             for (int i = 0; i < 8; i++)
             {
@@ -157,12 +167,11 @@ int main (int argc, char* argv[])
 
                 cur_sim = cur_sim | (cur_bit_ << i);
             }
-            if (cur_sim != EOF) {
-                printf("%c", cur_sim);
-                fflush(0);
-            }
 
-        } while (cur_sim != EOF);
+            printf("%c", cur_sim);
+            fflush(0);
+
+        } while (1);
 
 
         waitpid(is_parent, NULL, 0);
@@ -182,4 +191,12 @@ int getBit(char sim_, int num_)
 {
     if (num_ > 7 || num_ < 0) { return 0;}
     return (sim_ & (1 << num_)) != 0;
+}
+
+void printBit(char sim_)
+{
+    for (int i = 7; i >= 0; i--)
+    {
+        printf ("%d", getBit(sim_, i));
+    }
 }
