@@ -15,7 +15,6 @@
 #include <sys/prctl.h>
 
 int getBit(char sim_, int num_);
-void printBit(char sim_);
 void nop() {}
 
 int cur_bit_ = 0;
@@ -101,13 +100,13 @@ int main (int argc, char* argv[])
 
         char cur_s = 0;
 
-        sigset_t ssus_mask;
+        sigset_t ssus_mask = {};
         sigfillset(&ssus_mask);
         sigdelset(&ssus_mask, SIGUSR1);
         sigdelset(&ssus_mask, SIGTERM);
 
         char cont = 1;
-        while(cont)
+        while(1)
         {
 
             cont = read(df_source, &cur_s, sizeof(char));
@@ -151,11 +150,12 @@ int main (int argc, char* argv[])
         sigdelset(&ssus_mask, SIGCHLD);
 
         char cur_sim = 0;
-        do {
+        while(1) {
             cur_sim = 0;
 
             sigsuspend(&ssus_mask);
             if (cur_bit_ == 0) {
+                //the child announced the end of the transmission
                 break;
             }
             kill(is_parent, SIGUSR1);
@@ -170,8 +170,7 @@ int main (int argc, char* argv[])
 
             printf("%c", cur_sim);
             fflush(0);
-
-        } while (1);
+        }
 
 
         waitpid(is_parent, NULL, 0);
@@ -191,12 +190,4 @@ int getBit(char sim_, int num_)
 {
     if (num_ > 7 || num_ < 0) { return 0;}
     return (sim_ & (1 << num_)) != 0;
-}
-
-void printBit(char sim_)
-{
-    for (int i = 7; i >= 0; i--)
-    {
-        printf ("%d", getBit(sim_, i));
-    }
 }
