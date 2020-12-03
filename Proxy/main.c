@@ -243,12 +243,27 @@ int main(int argc, char* argv[])
                 int read_res = 0;
                 if (channels_info[i].tpForWrite - channels_info[i].pBuffer <= channels_info[i].size - channels_info[i].empty)
                 {
+                    /*
+                     * buffer:
+                     *  pBuffer    tpForWrite      tpForRead
+                     * /          /                /
+                     * |x|x|x|x|x| | | | | | | | | |x|x|x|x|
+                     *           |<-----empty----->|
+                     * |<---------------size-------------->|
+                     */
                     read_res = read(channels_info[i].fd_from, channels_info[i].tpForWrite, channels_info[i].empty);
                 }
                 else
                 {
-                    size_t n = (size_t) (channels_info[i].pBuffer + channels_info[i].size - channels_info[i].tpForWrite);
-                    read_res = read(channels_info[i].fd_from, channels_info[i].tpForWrite, n);
+                    /*
+                     * buffer:
+                     *  pBuffer   tpForRead     tpForWrite
+                     * /         /             /
+                     * | | | | | |x|x|x|x|x|x|x| | | | | | |
+                     *                         |<-- num -->|
+                     */
+                    size_t num = (size_t) (channels_info[i].pBuffer - channels_info[i].tpForWrite + channels_info[i].size);
+                    read_res = read(channels_info[i].fd_from, channels_info[i].tpForWrite, num);
                 }
 
                 if (read_res < 0)
@@ -281,14 +296,15 @@ int main(int argc, char* argv[])
             {
                 ////
                 int write_res = 0;
+                //see pictures above
                 if (channels_info[i].tpForRead - channels_info[i].pBuffer <= channels_info[i].empty)
                 {
                     write_res = write(channels_info[i].fd_to, channels_info[i].tpForRead, channels_info[i].size - channels_info[i].empty);
                 }
                 else
                 {
-                    size_t n = (size_t) (channels_info[i].pBuffer + channels_info[i].size - channels_info[i].tpForRead);
-                    write_res = write(channels_info[i].fd_to, channels_info[i].tpForRead, n);
+                    size_t num = (size_t) (channels_info[i].pBuffer + channels_info[i].size - channels_info[i].tpForRead);
+                    write_res = write(channels_info[i].fd_to, channels_info[i].tpForRead, num);
                 }
 
                 if (write_res < 0)
