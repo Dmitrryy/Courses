@@ -49,7 +49,7 @@ void SigHandler(int sig_)
     }
 }
 
-//it doesn't work correctly
+
 int main (int argc, char* argv[])
 {
     if (argc != 2) {
@@ -168,7 +168,6 @@ int main (int argc, char* argv[])
             fflush(0);
         }
 
-
         waitpid(is_parent, NULL, 0);
     }
     else
@@ -176,7 +175,6 @@ int main (int argc, char* argv[])
         printf("fork error\n");
         exit(1);
     }
-
 
     return 0;
 }
