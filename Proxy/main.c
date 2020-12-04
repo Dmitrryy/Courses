@@ -1,17 +1,20 @@
 
+//for splice
 #define _GNU_SOURCE
+
+#include "CircleBuffer.h"
+
 #include <math.h>
 #include <stdio.h>
+
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/ipc.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/prctl.h>
 #include <errno.h>
 #include <signal.h>
-#include <poll.h>
 #include <assert.h>
 
 
@@ -21,12 +24,7 @@
 struct ChannelInfo {
     int fd_from, fd_to;
 
-    char *pBuffer;
-    char *tpForWrite;
-    char *tpForRead;
-
-    size_t size;
-    size_t empty;
+    CircleBuffer buffer;
 };
 
 
@@ -62,8 +60,7 @@ int main(int argc, char* argv[])
     ///////////////////////////////////////////////////////////////
 
     {
-        struct sigaction sa;
-        sa.sa_flags = 0;
+        struct sigaction sa = {};
         sa.sa_handler = ChildSigHandler;
 
         sigaction(SIGCHLD, &sa, NULL);
@@ -150,13 +147,18 @@ int main(int argc, char* argv[])
         }
         else
         {// parent
-            channels_info[i].size = (size_t)(pow(3, n - i) * 1024);
+/*            channels_info[i].size = (size_t)(pow(3, n - i) * 1024);
             channels_info[i].pBuffer = (char*)calloc(channels_info[i].size, sizeof(char));
             assert(channels_info[i].pBuffer != NULL);
 
             channels_info[i].tpForRead = channels_info[i].tpForWrite = channels_info[i].pBuffer;
-            channels_info[i].empty = channels_info[i].size;
+            channels_info[i].empty = channels_info[i].size;*/
 
+            if (cbCreate((size_t)(pow(3, n - i) * 1024), &(channels_info[i].buffer)) != CB_SUCCESS)
+            {
+                printf("cant create buffer!\n");
+                exit(4);
+            }
 
             channels_info[i].fd_to = -1;
             channels_info[i].fd_from = -1;
@@ -207,8 +209,8 @@ int main(int argc, char* argv[])
 
     fd_set rfds = {};
     fd_set wfds = {};
-    long completed = 0;
-    while(completed < n)
+    long last_alive = 0;
+    while(channels_info[n - 1].fd_from >= 0)
     {
         FD_ZERO(&rfds);
         FD_ZERO(&wfds);
@@ -216,13 +218,13 @@ int main(int argc, char* argv[])
         int nSelect = -1;
         for (int i = 0; i < n; i++)
         {
-            if (channels_info[i].fd_from >= 0 && channels_info[i].empty != 0) {
+            if (channels_info[i].fd_from >= 0 && !cbIsFull(channels_info[i].buffer)) {
                 FD_SET(channels_info[i].fd_from, &rfds);
 
                 nSelect = MAX(nSelect, channels_info[i].fd_from);
             }
 
-            if (channels_info[i].fd_to >= 0 && channels_info[i].size - channels_info[i].empty != 0) {
+            if (channels_info[i].fd_to >= 0 && !cbIsEmpty(channels_info[i].buffer)) {
                 FD_SET(channels_info[i].fd_to, &wfds);
 
                 nSelect = MAX(nSelect, channels_info[i].fd_to);
@@ -235,58 +237,27 @@ int main(int argc, char* argv[])
             exit(11);
         }
 
-        for (long i = completed; i < n; i++)
+        for (long i = last_alive; i < n; i++)
         {
+
             if (FD_ISSET(channels_info[i].fd_from, &rfds))
             {
                 ////
                 int read_res = 0;
-                if (channels_info[i].tpForWrite - channels_info[i].pBuffer <= channels_info[i].size - channels_info[i].empty)
-                {
-                    /*
-                     * buffer:
-                     *  pBuffer    tpForWrite      tpForRead
-                     * /          /                /
-                     * |x|x|x|x|x| | | | | | | | | |x|x|x|x|
-                     *           |<-----empty----->|
-                     * |<---------------size-------------->|
-                     */
-                    read_res = read(channels_info[i].fd_from, channels_info[i].tpForWrite, channels_info[i].empty);
-                }
-                else
-                {
-                    /*
-                     * buffer:
-                     *  pBuffer   tpForRead     tpForWrite
-                     * /         /             /
-                     * | | | | | |x|x|x|x|x|x|x| | | | | | |
-                     *                         |<-- num -->|
-                     */
-                    size_t num = (size_t) (channels_info[i].pBuffer - channels_info[i].tpForWrite + channels_info[i].size);
-                    read_res = read(channels_info[i].fd_from, channels_info[i].tpForWrite, num);
+                if (cbReadFromFD(channels_info[i].buffer, channels_info[i].fd_from, cbGetSize(channels_info[i].buffer), &read_res) != CB_SUCCESS) {
+                    printf("error read!\n");
+                    exit(10);
                 }
 
                 if (read_res < 0)
                 {
                     perror("error in parent read");
-                    free_all(channels_info, n);
                     exit(EXIT_FAILURE);
                 }
-
-                if (read_res == 0) {
+                if (read_res == 0)
+                {
                     close(channels_info[i].fd_from);
                     channels_info[i].fd_from = -1;
-                }
-                else
-                {
-                    channels_info[i].empty -= read_res;
-                    channels_info[i].tpForWrite += read_res;
-                }
-
-                assert(channels_info[i].tpForWrite - channels_info[i].pBuffer <= channels_info[i].size);
-                if (channels_info[i].tpForWrite - channels_info[i].pBuffer == channels_info[i].size) {
-                    //we wrote up to end;
-                    channels_info[i].tpForWrite = channels_info[i].pBuffer;
                 }
                 ////
             }
@@ -296,36 +267,24 @@ int main(int argc, char* argv[])
             {
                 ////
                 int write_res = 0;
-                //see pictures above
-                if (channels_info[i].tpForRead - channels_info[i].pBuffer <= channels_info[i].empty)
-                {
-                    write_res = write(channels_info[i].fd_to, channels_info[i].tpForRead, channels_info[i].size - channels_info[i].empty);
-                }
-                else
-                {
-                    size_t num = (size_t) (channels_info[i].pBuffer + channels_info[i].size - channels_info[i].tpForRead);
-                    write_res = write(channels_info[i].fd_to, channels_info[i].tpForRead, num);
+                if (cbWriteToFD(channels_info[i].buffer, channels_info[i].fd_to, cbGetSize(channels_info[i].buffer), &write_res) != CB_SUCCESS) {
+                    printf("error read!\n");
+                    exit(10);
                 }
 
                 if (write_res < 0)
                 {
-                    perror("Parent: write: ");
+                    printf("error write!\n");
                     free_all(channels_info, n);
                     exit(EXIT_FAILURE);
                 }
 
-                channels_info[i].tpForRead += write_res;
-                channels_info[i].empty += write_res;
-
-                if (channels_info[i].tpForRead - channels_info[i].pBuffer == channels_info[i].size) {
-                    channels_info[i].tpForRead = channels_info[i].pBuffer;
-                }
                 ////
             }
 
-            if (channels_info[i].fd_from < 0 && channels_info[i].size == channels_info[i].empty)
+            if (channels_info[i].fd_from < 0 && cbIsEmpty(channels_info[i].buffer))
             {
-                if (i != completed)
+                if (i != last_alive)
                 {
                     printf("some child died too early!\n");
                     exit(132);
@@ -333,7 +292,7 @@ int main(int argc, char* argv[])
 
                 close(channels_info[i].fd_to);
                 channels_info[i].fd_to = -1;
-                completed++;
+                last_alive++;
             }
         }
     }
@@ -356,12 +315,13 @@ void ChildSigHandler(int sig_)
     }
 }
 
+
 void free_all(struct ChannelInfo* arr, size_t n)
 {
     for (size_t i = 0; i < n; i++)
     {
-        free(arr[i].pBuffer);
-        arr[i].pBuffer = NULL;
+        cbDestroy(arr[i].buffer);
+        arr[i].buffer = NULL;
     }
     free(arr);
 }
