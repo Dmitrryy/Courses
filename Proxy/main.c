@@ -147,13 +147,6 @@ int main(int argc, char* argv[])
         }
         else
         {// parent
-/*            channels_info[i].size = (size_t)(pow(3, n - i) * 1024);
-            channels_info[i].pBuffer = (char*)calloc(channels_info[i].size, sizeof(char));
-            assert(channels_info[i].pBuffer != NULL);
-
-            channels_info[i].tpForRead = channels_info[i].tpForWrite = channels_info[i].pBuffer;
-            channels_info[i].empty = channels_info[i].size;*/
-
             if (cbCreate((size_t)(pow(3, n - i) * 1024), &(channels_info[i].buffer)) != CB_SUCCESS)
             {
                 printf("cant create buffer!\n");
