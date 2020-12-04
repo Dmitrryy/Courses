@@ -290,6 +290,8 @@ int main(int argc, char* argv[])
         }
     }
 
+    free_all(channels_info, n);
+
     return 0;
 }
 

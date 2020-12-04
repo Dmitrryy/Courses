@@ -30,7 +30,6 @@ int cbCreate(size_t size_, CircleBuffer *buffer_)
     }
 
     tmp->size = size_;
-
     tmp->ri = tmp->wi = 0;
 
     return CB_SUCCESS;
