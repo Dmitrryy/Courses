@@ -10,11 +10,9 @@
 
 struct CircleBuffer_t {
     char *pBuffer;
-    char *tpForWrite;
-    char *tpForRead;
 
+    size_t ri, wi;
     size_t size;
-    size_t empty;
 };
 
 
@@ -31,8 +29,9 @@ int cbCreate(size_t size_, CircleBuffer *buffer_)
         return CB_FAILURE;
     }
 
-    tmp->tpForWrite = tmp->tpForRead = tmp->pBuffer;
-    tmp->size = tmp->empty = size_;
+    tmp->size = size_;
+
+    tmp->ri = tmp->wi = 0;
 
     return CB_SUCCESS;
 }
@@ -44,8 +43,8 @@ int cbDestroy(CircleBuffer buffer_)
     }
 
     free(buffer_->pBuffer);
-    buffer_->pBuffer = buffer_->tpForRead = buffer_->tpForWrite = NULL;
-    buffer_->size = buffer_->empty = 0;
+    buffer_->pBuffer = NULL;
+    buffer_->size = buffer_->ri = buffer_->wi = 0;
 
     free(buffer_);
 
@@ -58,41 +57,12 @@ int cbReadFromFD(CircleBuffer buffer_, int fd_, size_t num_, int *read_res_)
     if (buffer_ == NULL || buffer_->pBuffer == NULL) {
         return CB_FAILURE;
     }
-
+    size_t bSize = buffer_->size;
     int res = 0;
-    if (buffer_->tpForWrite <= buffer_->tpForRead)
-    {
-        /*
-         * buffer:
-         *  pBuffer    tpForWrite      tpForRead
-         * /          /                /
-         * |x|x|x|x|x| | | | | | | | | |x|x|x|x|
-         *           |<-----empty----->|
-         * |<---------------size-------------->|
-         */
-        res = read(fd_, buffer_->tpForWrite, MIN(buffer_->empty, num_));
-    }
-    else
-    {
-        /*
-         * buffer:
-         *  pBuffer   tpForRead     tpForWrite
-         * /         /             /
-         * | | | | | |x|x|x|x|x|x|x| | | | | | |
-         *                         |<-- num -->|
-         */
-        res = read(fd_, buffer_->tpForWrite, MIN(buffer_->pBuffer - buffer_->tpForWrite + buffer_->size, num_));
-    }
+    res = read(fd_, buffer_->pBuffer + (buffer_->wi % bSize), MIN(bSize - (buffer_->wi % bSize), bSize - (buffer_->wi - buffer_->ri)));
 
     if (res > 0) {
-        buffer_->empty -= res;
-        buffer_->tpForWrite += res;
-    }
-
-    assert(buffer_->tpForWrite - buffer_->pBuffer <= buffer_->size);
-    if (buffer_->tpForWrite - buffer_->pBuffer == buffer_->size)
-    {
-        buffer_->tpForWrite = buffer_->pBuffer;
+        buffer_->wi += res;
     }
 
     if (read_res_ != NULL) {
@@ -108,28 +78,13 @@ int cbWriteToFD(CircleBuffer buffer_, int fd_, size_t num_, int* write_res_)
         return CB_FAILURE;
     }
 
+    size_t bSize = buffer_->size;
     int res = 0;
-    if (buffer_->tpForRead <= buffer_->tpForWrite)
-    {
-        //see pictures above
-        res = write(fd_, buffer_->tpForRead, buffer_->size - buffer_->empty);
-    }
-    else
-    {
-        res = write(fd_, buffer_->tpForRead, buffer_->pBuffer + buffer_->size - buffer_->tpForRead);
-    }
+    res = write(fd_, buffer_->pBuffer + (buffer_->ri % bSize), MIN(buffer_->wi - buffer_->ri, bSize - (buffer_->ri % bSize)));
 
     if (res > 0) {
-        buffer_->tpForRead += res;
-        buffer_->empty += res;
+        buffer_->ri += res;
     }
-
-    assert(buffer_->tpForRead <= buffer_->pBuffer + buffer_->size);
-    if (buffer_->tpForRead - buffer_->pBuffer == buffer_->size)
-    {
-        buffer_->tpForRead = buffer_->pBuffer;
-    }
-
 
     if (write_res_ != NULL) {
         *write_res_ = res;
@@ -143,18 +98,14 @@ size_t cbGetSize(CircleBuffer buffer_)
 {
     return buffer_->size;
 }
-size_t cbGetEmpty(CircleBuffer buffer_)
-{
-    return buffer_->empty;
-}
 
 int cbIsEmpty(CircleBuffer buffer_)
 {
-    return buffer_->empty == buffer_->size;
+    return buffer_->ri == buffer_->wi;
 }
 int cbIsFull(CircleBuffer buffer_)
 {
-    return buffer_->empty == 0;
+    return buffer_->wi - buffer_->ri == buffer_->size;
 }
 
 void cbDump(CircleBuffer buffer_);
