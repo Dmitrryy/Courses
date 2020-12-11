@@ -19,7 +19,6 @@ void nop() {}
 
 int cur_bit_ = 0;
 
-#define NDEBUG
 
 void SigHandler(int sig_)
 {
@@ -37,9 +36,10 @@ void SigHandler(int sig_)
             int status__ = 0;
             wait(&status__);
             if (status__ != 0) {
-                printf("child died too early\n");
+                printf("child died too early\n (status: %d)\n", status__);
+                exit(1);
             }
-            exit(1);
+            exit(0);
         }
 
         case SIGTERM:
