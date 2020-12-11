@@ -37,10 +37,9 @@ void SigHandler(int sig_)
             int status__ = 0;
             wait(&status__);
             if (status__ != 0) {
-                printf("child died\n");
-                exit(1);
+                printf("child died too early\n");
             }
-            break;
+            exit(1);
         }
 
         case SIGTERM:
@@ -105,18 +104,8 @@ int main (int argc, char* argv[])
         sigdelset(&ssus_mask, SIGUSR1);
         sigdelset(&ssus_mask, SIGTERM);
 
-        char cont = 1;
-        while(1)
+        while(read(df_source, &cur_s, sizeof(char)))
         {
-            cont = read(df_source, &cur_s, sizeof(char));
-            if (cont <= 0) {
-                kill(ppid, SIGUSR1);
-                break;
-            }
-            else {
-                kill(ppid, SIGUSR2);
-            }
-            sigsuspend(&ssus_mask);
 
             for (int i = 0; i < 8; i++)
             {
@@ -149,13 +138,6 @@ int main (int argc, char* argv[])
         while(1) {
             cur_sim = 0;
 
-            sigsuspend(&ssus_mask);
-            if (cur_bit_ == 0) {
-                //the child announced the end of the transmission
-                break;
-            }
-            kill(is_parent, SIGUSR1);
-
             for (int i = 0; i < 8; i++)
             {
                 sigsuspend(&ssus_mask);
@@ -164,8 +146,7 @@ int main (int argc, char* argv[])
                 cur_sim = cur_sim | (cur_bit_ << i);
             }
 
-            printf("%c", cur_sim);
-            fflush(0);
+            write(STDOUT_FILENO, &cur_sim, sizeof(char));
         }
 
         waitpid(is_parent, NULL, 0);
