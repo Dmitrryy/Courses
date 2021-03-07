@@ -1,21 +1,33 @@
+/*************************************************************************
+ *
+ *   HashTable.h
+ *
+ *   Created by dmitry
+ *   10.02.2021
+ *
+ ***/
+
+
 #pragma once
 
 
 #include <stdlib.h>
 
-//type of key in table
-#define HS_KEY_TYPE int
-//type of value in table
-#define HS_VAL_TYPE int
-
 
 struct Hash_t;
 struct htIt_t;
+
 
 //Hash table type
 typedef struct Hash_t* Hash;
 //Hash Table iterator type
 typedef struct htIt_t* hsIt;
+
+//type of key in table
+typedef int hs_key_type;
+//type of value in table
+typedef int hs_val_type;
+
 
 
 //create hash table
@@ -23,6 +35,8 @@ Hash hsCreate (size_t size);
 //destroy hash table
 void hsDestroy(Hash ht);
 
+
+size_t hsSize(Hash ht);
 
 /*
  * add or set new value with key
@@ -32,7 +46,7 @@ void hsDestroy(Hash ht);
  *  key - key in table
  *  val - new value
  */
-void insert    (Hash ht, HS_KEY_TYPE key, HS_VAL_TYPE val);
+void hsInsert    (Hash ht, hs_key_type key, hs_val_type val);//todo
 /*
  * get value hidden under the key.
  *
@@ -43,21 +57,20 @@ void insert    (Hash ht, HS_KEY_TYPE key, HS_VAL_TYPE val);
  * return:
  *  value with 'key' id
  */
-HS_VAL_TYPE get(Hash ht, HS_KEY_TYPE key);
+hs_val_type hsGet(Hash ht, hs_key_type key);//todo
 
 
-void hsSetHashFunc(Hash ht, uint(*hashCompute)(HS_KEY_TYPE key)); //todo
-void hsSetDefaultHashFunc(Hash ht); //todo
+void hsSetHashFunc       (Hash ht, uint(*hashCompute)(void* key, size_t size, uint max));
+void hsSetDefaultHashFunc(Hash ht);
 
 
 hsIt hsBegin(Hash ht); //todo
-hsIt hsEnd  (Hash ht); //todo
 
 int hsItIsEnd  (hsIt it); //todo
-int hsItIsBegin(hsIt it); //todo
 
 void hsItNext(hsIt it); //todo
-void hsItPrev(hsIt it); //todo
 
-HS_KEY_TYPE hsItKey(hsIt it); //todo
-HS_VAL_TYPE hsItVal(hsIt it); //todo
+hs_key_type hsItKey(hsIt it); //todo
+hs_val_type hsItVal(hsIt it); //todo
+
+void hsItDestroy(hsIt it);
