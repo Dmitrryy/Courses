@@ -24,14 +24,21 @@ int main()
     rbTree tree;
     rbCreate(NULL, 0, &tree);
 
-    rbPair p = {1, 2};
-    rbInsert(tree, p);
+
+    for (size_t i = 0; i < 10; i++) {
+        rbPair p = {i, 2};
+        rbInsert(tree, p);
+    }
+
+    rbDump(tree);
     rbClear(tree);
 
     rbPair* pp = rbFind(tree, 1);
 
 
-    printf("%d %d\n", p.key, p.value);
+/*    printf("%d %d\n", p.key, p.value);
     if (pp != NULL)
-        printf("%d %d\n", pp->key, pp->value);
+        printf("%d %d\n", pp->key, pp->value);*/
+
+    rbDestroy(tree);
 }

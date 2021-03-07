@@ -20,18 +20,20 @@
 /// An attribute of every node in the tree. Used for balancing of tree.
 enum color_t {BLACK, RED};
 
+
 struct rbNode_t
 {
     struct rbNode_t* parent, *left, *right; //TODO
     enum color_t     color;
     rbPair           pair;
 };
+typedef struct rbNode_t* rbNode;
+
 
 struct rbMap_t
 {
     struct rbNode_t* treeRoot;
 };
-
 /***
  *
  *   end of defining structures
@@ -45,14 +47,15 @@ static void* calloc_h(size_t nnum, size_t size);
 static int isInTree (struct rbMap_t* map, rb_key_type key);
 static void insert (struct rbNode_t* parent, struct rbNode_t* node);
 
-static void foreach_h (struct rbNode_t* tree, void (*foo)(rbPair* el, void* data), void* data);
-static void printTreeWithIndents (struct rbNode_t* tree, int indents);
+static void foreach_ (struct rbNode_t* tree, void (*act)(rbPair*, void*), void* data);
 
+static void printTree_ (struct rbNode_t* tree, int indents);
+static void printNode_ (rbNode node, int indents);
 
 static struct rbNode_t* findTop (struct rbNode_t* node);
 static struct rbNode_t* findParent (struct rbNode_t* tree, rb_key_type key);
-static struct rbNode_t* findGrandparent(struct rbNode_t*node);
-static struct rbNode_t* findUncle      (struct rbNode_t*node);
+static struct rbNode_t* findGrandparent(struct rbNode_t* node);
+static struct rbNode_t* findUncle      (struct rbNode_t* node);
 static struct rbNode_t* findBrother    (struct rbNode_t* node);
 
 static struct rbNode_t* find_node_with_key_(rbTree tree, rb_key_type key);
@@ -98,7 +101,7 @@ rbResult rbCreate (const rbPair* data, size_t size, rbTree* tree)
     for (size_t i = 0; i < size; ++i) {
         rbResult res = rbInsert(*tree, data[i]);
         if (res != RB_SUCCESS) {
-            rbDelete(*tree);
+            rbDestroy(*tree);
             return res;
         }
     }
@@ -107,10 +110,10 @@ rbResult rbCreate (const rbPair* data, size_t size, rbTree* tree)
 }
 
 
-rbResult rbDelete (rbTree map)
+rbResult rbDestroy (rbTree tree)
 {
-    deleteTree(map->treeRoot);
-    free (map);
+    deleteTree(tree->treeRoot);
+    free (tree);
     return RB_SUCCESS;
 }
 
@@ -638,7 +641,7 @@ static void delete_case6 (struct rbNode_t* node) {
 }
 
 
-void deleteTree (struct rbNode_t* tree) {
+static void deleteTree (struct rbNode_t* tree) {
 
     if (tree == NULL)
         return;
@@ -652,48 +655,82 @@ void deleteTree (struct rbNode_t* tree) {
 }
 
 
-//                              Foreach functions
-//==========================================================================================
+/****************************************************************************************
+ *
+ *   foreach functions
+ *
+ ***/
+rbResult rbForeach (struct rbMap_t* tree, void (*act)(rbPair*, void*), void* data) {
 
-int foreach (struct rbMap_t* map, void (*foo)(rbPair*, void*), void* data) {
-
-    if (map == NULL || foo == NULL)
+    if (tree == NULL || act == NULL)
         return RB_INVALID_ARGS;
 
-    foreach_h(map->treeRoot, foo, data);
+    foreach_(tree->treeRoot, act, data);
     return RB_SUCCESS;
 }
 
 
-void foreach_h (struct rbNode_t* tree, void (*foo)(rbPair*, void*), void* data) {
+static void foreach_ (struct rbNode_t* tree, void (*act)(rbPair*, void*), void* data) {
 
     if (tree == NULL)
         return;
 
-    foreach_h(tree->left, foo, data);
-    foreach_h(tree->right, foo, data);
-    foo (&tree->pair, data);
+    foreach_(tree->left, act, data);
+    foreach_(tree->right, act, data);
+    act (&tree->pair, data);
+}
+/***
+ *
+ *   end of foreach functions
+ *
+ ****************************************************************************************/
+
+
+
+
+/****************************************************************************************
+ *
+ *   dump functions
+ *
+ ***/
+rbResult rbDump (rbTree tree) {
+
+    if (tree == NULL)
+        return RB_INVALID_ARGS;
+
+    printTree_(tree->treeRoot, 0);
+
+    return RB_SUCCESS;
 }
 
 
+/// prints the current node and then the children indented one more.
+/// \param tree - current node
+/// \param indents - отступ
+static void printTree_ (rbNode tree, int indents) {
 
-//                              Dump functions
-//==========================================================================================
+    printNode_(tree, indents);
+
+    if (tree == NULL)
+        return;
+
+    printTree_(tree->left, indents + 1);
+    printTree_(tree->right, indents + 1);
+}
 
 
-static void writeIndents (int indents) {
+/// prints the contents of the node indented appropriately.
+/// \param node    - print node
+/// \param indents - отступ
+static void printNode_ (rbNode node, int indents)
+{
     for (int i = 0; i < indents; ++i)
-        printf (":::|");
-}
+        printf("    |");
 
-static void printNode (struct rbNode_t* node, int indents) {
-
-    writeIndents(indents);
-
-    if (node == NULL)
-        printf ("NULL(B)\n");
-    else {
-
+    if (node == NULL) {
+        printf("NULL(B)\n");
+    }
+    else{
         printf("[key: %d, value: %d]", node->pair.key, node->pair.value);
 
         if (node->color == RED)
@@ -702,30 +739,8 @@ static void printNode (struct rbNode_t* node, int indents) {
             printf("(B)\n");
     }
 }
-
-void printTreeWithIndents (struct rbNode_t* tree, int indents) {
-
-    printNode(tree, indents);
-
-    if (tree == NULL)
-        return;
-
-    printTreeWithIndents(tree->left, indents + 1);
-    printTreeWithIndents(tree->right, indents + 1);
-}
-
-///==============================================================================
-
-
-
-rbResult printMap (rbTree map) {
-
-    if (map == NULL)
-        return RB_INVALID_ARGS;
-
-    printTreeWithIndents(map->treeRoot, 0);
-
-    return RB_SUCCESS;
-}
-
-///==============================================================================
+/***
+ *
+ *   end of dump functions
+ *
+ ****************************************************************************************/
