@@ -7,8 +7,31 @@
  *
  ***/
 
-#include "../include/RBTree.h"
 
+
+//
+/// RBTree
+///======================================================================================
+/// A red-black tree is a binary search tree in which each node has a color attribute. At
+/// the same time:
+///
+/// 1. A node can be either red or black and has two children;
+/// 2. The root is usually black. This rule has little effect on the performance of the
+///    model, since the color of the root can always be changed from red to black;
+/// 3. All leaves that do not contain data are black.
+/// 4. Both descendants of each red node are black.
+/// 5. Any simple path from an ancestor node to a leaf descendant node contains the same
+///    number of black nodes.
+///
+/// Thanks to these restrictions, the path from the root to the farthest leaf is no more
+/// than twice as long as to the nearest one, and the tree is roughly balanced. The
+/// insert, delete, and search operations require a time proportional to the length of
+/// the tree in the worst case, which allows red-black trees to be more efficient in the
+/// worst case than normal binary search trees.
+///======================================================================================
+///======================================================================================
+//
+#include "../include/RBTree.h"
 
 
 /****************************************************************************************
@@ -23,7 +46,10 @@ enum color_t {BLACK, RED};
 
 struct rbNode_t
 {
-    struct rbNode_t* parent, *left, *right; //TODO
+    struct rbNode_t* parent;
+    struct rbNode_t* left;
+    struct rbNode_t* right;
+
     enum color_t     color;
     rbPair           pair;
 };
@@ -32,7 +58,7 @@ typedef struct rbNode_t* rbNode;
 
 struct rbMap_t
 {
-    struct rbNode_t* treeRoot;
+    rbNode  treeRoot;
 };
 /***
  *
@@ -41,51 +67,103 @@ struct rbMap_t
  ****************************************************************************************/
 
 
-static void* calloc_h(size_t nnum, size_t size);
+
+/****************************************************************************************
+ *
+ *   To test the case of memory allocation failure
+ *
+ ***/
+#ifdef RUN_TESTS
+
+static void* calloc_broken(size_t nnum, size_t size) {
+    static int stap = 0;
+
+    void* res = NULL;
+    if (stap != 0 && stap != 2) {
+        res = calloc(nnum, size);
+    }
+
+    stap++;
+
+    return res;
+}
+#define CALLOC(x, y) calloc_broken(x, y)
+
+#else
+
+#define CALLOC(x, y) calloc(x, y)
+
+#endif //TEST
+/***
+ *
+ *   end of declaring macros for the test
+ *
+ ****************************************************************************************/
 
 
-static int isInTree (struct rbMap_t* map, rb_key_type key);
-static void insert (struct rbNode_t* parent, struct rbNode_t* node);
 
-static void foreach_ (struct rbNode_t* tree, void (*act)(rbPair*, void*), void* data);
 
-static void printTree_ (struct rbNode_t* tree, int indents);
+/****************************************************************************************
+ *
+ *   prototypes for helper functions
+ *
+ ***/
+static void foreach_   (rbNode tree, void (*act)(rbPair*, void*), void* data);
+
+static void printTree_ (rbNode tree, int indents);
 static void printNode_ (rbNode node, int indents);
 
-static struct rbNode_t* findTop (struct rbNode_t* node);
-static struct rbNode_t* findParent (struct rbNode_t* tree, rb_key_type key);
-static struct rbNode_t* findGrandparent(struct rbNode_t* node);
-static struct rbNode_t* findUncle      (struct rbNode_t* node);
-static struct rbNode_t* findBrother    (struct rbNode_t* node);
-
-static struct rbNode_t* find_node_with_key_(rbTree tree, rb_key_type key);
-
-
-static void leftRotation (struct rbNode_t* node);
-static void rightRotation(struct rbNode_t* node);
+static rbNode find_top_            (rbNode node);
+static rbNode find_parent_         (rbNode tree, rb_key_type key);
+static rbNode find_grandparent_    (rbNode node);
+static rbNode find_uncle_          (rbNode node);
+static rbNode find_brother_        (rbNode node);
+static rbNode find_node_with_key_(rbTree tree, rb_key_type key);
 
 
-static void replaceWithChild (struct rbNode_t* node, struct rbNode_t* child);
-
-static void deleteTree (struct rbNode_t* tree);
-static rbNode deleteNode        (rbNode node);
-static void   deleteTheOnlyChild(struct rbNode_t* node);
-static void   delete_case1 (struct rbNode_t* node);
-static void   delete_case2 (struct rbNode_t* node);
-static void   delete_case3 (struct rbNode_t* node);
-static void   delete_case4 (struct rbNode_t* node);
-static void   delete_case5 (struct rbNode_t* node);
-static void   delete_case6 (struct rbNode_t* node);
-
-static void   insert_case1 (struct rbNode_t* node);
-static void   insert_case2 (struct rbNode_t* node);
-static void   insert_case3 (struct rbNode_t* node);
-static void   insert_case4 (struct rbNode_t* node);
-static void   insert_case5 (struct rbNode_t* node);
+static void leftRotation  (rbNode node);
+static void rightRotation (rbNode node);
 
 
+static void replaceWithChild  (rbNode node, rbNode child);
+
+static void   deleteTree      (rbNode tree);
+static rbNode deleteNode      (rbNode node);
+static void   delete_one_child(rbNode node);
+static void   delete_case1    (rbNode node);
+static void   delete_case2    (rbNode node);
+static void   delete_case3    (rbNode node);
+static void   delete_case4    (rbNode node);
+static void   delete_case5    (rbNode node);
+static void   delete_case6    (rbNode node);
+
+
+static void   insert       (rbNode parent, rbNode node);
+static void   insert_case1 (rbNode node);
+static void   insert_case2 (rbNode node);
+static void   insert_case3 (rbNode node);
+static void   insert_case4 (rbNode node);
+static void   insert_case5 (rbNode node);
+/***
+ *
+ *   end of prototypes for helper functions
+ *
+ ****************************************************************************************/
+
+
+
+
+/****************************************************************************************
+ *
+ *   interface functions
+ *
+ ***/
 rbResult rbCreate (const rbPair* data, size_t size, rbTree* tree)
 {
+    if (tree == NULL) {
+        return RB_INVALID_ARGS;
+    }
+
     *tree = (struct rbMap_t*) CALLOC(1, sizeof(struct rbMap_t));
 
     if (*tree == NULL) {
@@ -139,39 +217,27 @@ rbPair* rbFind (rbTree tree, rb_key_type key)
 }
 
 
-
-void* calloc_h(size_t nnum, size_t size) {
-    static int a = 0;
-
-    if (a == 0 || a == 2) {
-        a++;
-        return NULL;
-    }
-
-    a++;
-    return calloc (nnum,size);
-}
-
 rbResult rbInsert (rbTree tree, rbPair pair) {
 
     if (tree == NULL)
         return RB_INVALID_ARGS;
 
-    struct rbNode_t* rNode = tree->treeRoot;
+    rbNode rNode = tree->treeRoot;
 
-    if (isInTree(tree, pair.key)) {
+    rbNode node = find_node_with_key_(tree, pair.key);
+    if (node != NULL) {
+        node->pair.value = pair.value;
         return RB_SUCCESS;
     }
-
-    struct rbNode_t* node = (struct rbNode_t*) CALLOC(1, sizeof(struct rbNode_t));
+    else {
+        node = (rbNode) CALLOC(1, sizeof(struct rbNode_t));
+    }
 
     if (node == NULL) {
         return RB_LACK_OF_MEMORY;
     }
 
-    //TODO
-    rb_key_type * pKey = &node->pair.key;
-    *pKey = pair.key;
+    *((int*)&node->pair.key) = pair.key;
 
     node->pair.value = pair.value;
     node->color = RED;
@@ -179,51 +245,59 @@ rbResult rbInsert (rbTree tree, rbPair pair) {
     node->left = NULL;
     node->right = NULL;
 
-    struct rbNode_t* parent = findParent (rNode, node->pair.key); //TODO
+    rbNode parent = find_parent_(rNode, node->pair.key);
 
-    insert (parent, node); //TODO
+    insert (parent, node);
 
-    tree->treeRoot = findTop(node); //TODO
+    tree->treeRoot = find_top_(node);
 
     return RB_SUCCESS;
 }
+
 
 rbResult rbErase (struct rbMap_t* tree, int key) {
 
     if (tree == NULL)
         return RB_INVALID_ARGS;
 
-    struct rbNode_t* node = find_node_with_key_(tree, key);
+    rbNode node = find_node_with_key_(tree, key);
 
     if (node != NULL)
-        tree->treeRoot = deleteNode(node); //TODO
+        tree->treeRoot = deleteNode(node);
 
     return RB_SUCCESS;
 }
 
 
-rbResult isEmpty (struct rbMap_t* map) {
+rbResult rbEmpty (rbTree tree) {
 
-    if (map == NULL)
+    if (tree == NULL)
         return RB_INVALID_ARGS;
 
-    return map->treeRoot == NULL;
+    return tree->treeRoot == NULL;
 }
+/***
+ *
+ *   end of interface functions
+ *
+ ****************************************************************************************/
 
 
 
 
-
-
-
-static struct rbNode_t* find_node_with_key_(rbTree tree, rb_key_type key)
+/****************************************************************************************
+ *
+ *   Find functions
+ *
+ ***/
+static rbNode find_node_with_key_(rbTree tree, rb_key_type key)
 {
     if (tree->treeRoot == NULL)
         return NULL;
 
-    struct rbNode_t* node = tree->treeRoot;
+    rbNode node = tree->treeRoot;
 
-    struct rbNode_t* tmp = node;
+    rbNode tmp = node;
 
     while (tmp) {
         if (tmp->pair.key > key)
@@ -238,20 +312,16 @@ static struct rbNode_t* find_node_with_key_(rbTree tree, rb_key_type key)
 }
 
 
-//                              Find functions
-//==========================================================================================
-
-int isInTree (struct rbMap_t* map, int key) {
-    return rbFind(map, key) != NULL;
-}
-
-
-struct rbNode_t* findTop (struct rbNode_t* node) {
+/// Looking for a node that has no parent (root node).
+/// There is only one such node in the whole tree.
+/// \param node - current node
+/// \return pointer to root node.
+rbNode find_top_ (rbNode node) {
 
     if (node == NULL)
         return NULL;
 
-    struct rbNode_t* res = node;
+    rbNode res = node;
 
     while (res->parent)
         res = res->parent;
@@ -260,32 +330,36 @@ struct rbNode_t* findTop (struct rbNode_t* node) {
 }
 
 
-struct rbNode_t* findParent (struct rbNode_t* tree, int key) {
+///  Looks for a place where to attach a new node with the given key.
+/// \param tree - root node
+/// \param key  - the key to look for the parent
+/// \return a pointer to a node to which a new node with the given key can be attached.
+rbNode find_parent_ (rbNode  tree, int key) {
 
     if (tree == NULL)
         return NULL;
 
     if (tree->pair.key > key) {
         if (tree->left)
-            return findParent(tree->left, key);
+            return find_parent_(tree->left, key);
         else
             return tree;
     } else {
         if (tree->right)
-            return findParent(tree->right, key);
+            return find_parent_(tree->right, key);
         else
             return tree;
     }
 }
 
-static struct rbNode_t* findGrandparent(struct rbNode_t*node) {
+static rbNode find_grandparent_(rbNode node) {
 
     return node->parent->parent;
 }
 
-static struct rbNode_t* findUncle (struct rbNode_t* node) {
+static rbNode find_uncle_ (rbNode node) {
 
-    struct rbNode_t* grandpa = findGrandparent(node);
+    rbNode  grandpa = find_grandparent_(node);
 
     if (node->parent == grandpa->left)
         return grandpa->right;
@@ -293,9 +367,9 @@ static struct rbNode_t* findUncle (struct rbNode_t* node) {
         return grandpa->left;
 }
 
-static struct rbNode_t* findBrother (struct rbNode_t* node) {
+static rbNode find_brother_ (rbNode node) {
 
-    if (node == NULL || node->parent == NULL) //TODO: if i ever call this function with NULL arguments?
+    if (node == NULL || node->parent == NULL)
         return NULL;
 
     if (node == node->parent->left)
@@ -304,7 +378,7 @@ static struct rbNode_t* findBrother (struct rbNode_t* node) {
         return node->parent->left;
 }
 
-struct rbNode_t* findMax (struct rbNode_t* tree) {
+rbNode findMax (rbNode tree) {
 
     while (tree->right)
         tree = tree->right;
@@ -312,24 +386,30 @@ struct rbNode_t* findMax (struct rbNode_t* tree) {
     return tree;
 }
 
-struct rbNode_t* findMin (struct rbNode_t* tree) {
+rbNode findMin (rbNode tree) {
 
     while (tree->left)
         tree = tree->left;
 
     return tree;
 }
+/***
+ *
+ *   end of Rotate functions
+ *
+ ****************************************************************************************/
 
 
-//                              Rotate functions
-//==========================================================================================
 
 
+/****************************************************************************************
+ *
+ *   Rotate functions
+ *
+ ***/
+static void leftRotation (rbNode  node) {
 
-
-static void leftRotation (struct rbNode_t* node) {
-
-    struct rbNode_t* pivot = node->right;
+    rbNode  pivot = node->right;
 
     pivot->parent = node->parent; // and pivot can become the root of tree
     if (node->parent != NULL) {
@@ -347,9 +427,9 @@ static void leftRotation (struct rbNode_t* node) {
     pivot->left = node;
 }
 
-static void rightRotation(struct rbNode_t*node) {
+static void rightRotation(rbNode node) {
 
-    struct rbNode_t* pivot = node->left;
+    rbNode  pivot = node->left;
 
     pivot->parent = node->parent; // and pivot can become the root of tree
     if (node->parent != NULL) {
@@ -367,32 +447,64 @@ static void rightRotation(struct rbNode_t*node) {
     node->parent = pivot;
     pivot->right = node;
 }
+/***
+ *
+ *   end of Rotate functions
+ *
+ ****************************************************************************************/
 
 
 
-//                              Inserting element
-//==========================================================================================
+
+/****************************************************************************************
+ *
+ *   Insertion functions
+ *
+ ***/
+
+//
+/// Insertion
+///======================================================================================
+/// A new node in the red-black tree is added to the place of one of the leaves, colored
+/// red, and two leaves are attached to it (since the leaves are an abstraction that does
+/// not contain data, adding them does not require an additional operation). What happens
+/// next depends on the color of the nearby nodes. Note that:
+///
+/// Property 3 (All leaves are black) is always executed.
+/// Property 4 (Both descendants of any red node are black) can only be broken when a red
+/// node is added, when a black node is recolored to red, or when it is rotated.
+/// Property 5 (All paths from any node to leaf nodes contain the same number of black
+/// nodes) can only be broken when adding a black node, repainting a red node to black
+/// (or vice versa), or when turning.
+///======================================================================================
+///======================================================================================
+//
 
 
-
-void insert (struct rbNode_t* parent, struct rbNode_t* node) {
+/// Attaches a new node to an existing one without violating the red-black tree
+/// invariants.
+/// \param parent - parent of the new node
+/// \param node   - new node
+static void insert (rbNode  parent, rbNode  node) {
 
     node->parent = parent;
 
-    if (parent == NULL) {
-        insert_case1(node);
-        return;
+    if (parent != NULL)
+    {
+        if (parent->pair.key > node->pair.key)
+            parent->left = node;
+        else
+            parent->right = node;
     }
-
-    if (parent->pair.key > node->pair.key)
-        parent->left = node;
-    else
-        parent->right = node;
-
-    insert_case2(node);
+    insert_case1(node);
 }
 
-static void insert_case1(struct rbNode_t* node) {
+/// Case 1: The current node N at the root of the tree. In this case, it is repainted
+/// black to keep Property 2 true (Root is black). Since this action adds one black node
+/// to each path, Property 5 (All paths from any given node to leaf nodes contain the
+/// same number of black nodes) is not violated.
+/// \param node - insert node
+static void insert_case1(rbNode  node) {
 
     if (node->parent == NULL)
         node->color = BLACK;
@@ -400,7 +512,15 @@ static void insert_case1(struct rbNode_t* node) {
         insert_case2(node);
 }
 
-static void insert_case2(struct rbNode_t* node) {
+/// Case 2: The ancestor P of the current node is black, that is, Property 4 (Both
+/// children of each red node are black) is not violated. In this case, the tree remains
+/// correct. Property 5 (All paths from any given node to leaf nodes contain the same
+/// number of black nodes) is not violated, because the current node N has two black leaf
+/// children, but since N is red, the path to each of these children contains the same
+/// number of black ones. nodes as the path to the black sheet, which was replaced by the
+/// current node, so the property remains true.
+/// \param node - insert node
+static void insert_case2(rbNode  node) {
 
     if (node->parent->color == BLACK)
         return; /* Tree is still valid */
@@ -408,16 +528,25 @@ static void insert_case2(struct rbNode_t* node) {
         insert_case3(node);
 }
 
-static void insert_case3(struct rbNode_t* node) {
+/// Case 3: If both parent P and uncle U are red, then they can both be repainted black,
+/// and grandpa G will turn red (to preserve property 5 (All paths from any given node to
+/// leaf nodes contain the same number of black nodes)) ... The current red node N now
+/// has a black parent. Since any path through the parent or uncle must pass through the
+/// grandfather, the number of black nodes in these paths will not change. However, the
+/// grandfather G can now violate properties 2 (Root is black) or 4 (Both children of
+/// each red node are black) (property 4 can be violated, since the parent of G may be
+/// red). To fix this, the whole procedure is recursively executed on G from case 1.
+/// \param node - insert node
+static void insert_case3(rbNode node) {
 
-    struct rbNode_t*uncle = findUncle(node), *grandpa;
+    rbNode uncle = find_uncle_(node), grandpa;
 
     if ((uncle != NULL) && (uncle->color == RED)) {
 
         node->parent->color = BLACK;
         uncle->color = BLACK;
 
-        grandpa = findGrandparent(node);
+        grandpa = find_grandparent_(node);
         grandpa->color = RED;
 
         insert_case1(grandpa);
@@ -426,9 +555,21 @@ static void insert_case3(struct rbNode_t* node) {
     }
 }
 
-static void insert_case4(struct rbNode_t* node) {
+/// Case 4: P's parent is red, but U's uncle is black. Also, the current node N is the
+/// right child of P, and P, in turn, is the left child of its ancestor G. In this case,
+/// a tree rotation can be performed, which changes the roles of the current node N and
+/// its ancestor P. Then, for the former parent of P in the updated structure, we use
+/// case 5, because Property 4 (Both children of any red node are black) is still broken.
+/// Rotation leads to the fact that some paths (in the subtree marked "1" in the diagram)
+/// go through the node N, which was not before. This also causes some paths (in the
+/// subtree denoted by "3") not to go through node P. However, both of these nodes are
+/// red, so Property 5 (All paths from any given node to leaf nodes contain the same
+/// number of black knots) is not broken during rotation. However Property 4 is still
+/// violated, but now the problem is reduced to Case 5.
+/// \param node - insert node
+static void insert_case4(rbNode node) {
 
-    struct rbNode_t* grandpa = findGrandparent(node);
+    rbNode  grandpa = find_grandparent_(node);
 
     if ((node == node->parent->right) && (node->parent == grandpa->left)) {
 
@@ -444,9 +585,20 @@ static void insert_case4(struct rbNode_t* node) {
 }
 
 
-static void insert_case5(struct rbNode_t* node) {
+/// Case 5: P's parent is red, but U's uncle is black, the current node N is the left
+/// child of P and P is the left child of G. In this case, the tree rotates by G. The
+/// result is a tree in which the former parent of P is now the parent and the current
+/// node N and the former grandfather G. It is known that G is black, since its former
+/// child P could not otherwise be red (without violating Property 4). Then the colors
+/// of P and G change and as a result the tree satisfies Property 4 (Both children of
+/// any red node are black). Property 5 (All paths from any given node to leaf nodes
+/// contain the same number of black nodes) also remains true, since all paths that pass
+/// through any of these three nodes previously went through G, so now they all go
+/// through P. B in each case, of the three nodes, only one is colored black.
+/// \param node - insert node
+static void insert_case5(rbNode  node) {
 
-    struct rbNode_t* grandpa = findGrandparent(node);
+    rbNode  grandpa = find_grandparent_(node);
 
     node->parent->color = BLACK;
     grandpa->color = RED;
@@ -457,21 +609,26 @@ static void insert_case5(struct rbNode_t* node) {
         leftRotation(grandpa);
     }
 }
+/***
+ *
+ *   end of Insertion functions
+ *
+ ****************************************************************************************/
 
 
 
 
+/****************************************************************************************
+ *
+ *   Removal functions
+ *
+ ***/
 
-//                              Deleting element
-//==========================================================================================
 
+rbNode  deleteNode (rbNode  node) {
 
-
-
-struct rbNode_t* deleteNode (struct rbNode_t* node) {
-
-    struct rbNode_t* M;
-    struct rbNode_t* tmp = node;
+    rbNode  M;
+    rbNode  tmp = node;
 
     if (node->right)
         M = findMin (node->right);
@@ -484,22 +641,19 @@ struct rbNode_t* deleteNode (struct rbNode_t* node) {
 
     node->pair.value = M->pair.value;
 
-    //TODO
-    int* pKey = &node->pair.key;
-    *pKey = M->pair.key;
-    //node->pair.key = M->pair.key;
+    *((int*)&node->pair.key) = M->pair.key;
 
-    deleteTheOnlyChild(M);
+    delete_one_child(M);
 
-    return findTop(tmp);
+    return find_top_(tmp);
 }
 
 
-static void deleteTheOnlyChild(struct rbNode_t* node) {
+static void delete_one_child(rbNode  node) {
 
     assert (node->left == NULL || node->right == NULL);
 
-    struct rbNode_t*child;
+    rbNode child;
 
     if (node->left == NULL && node->right == NULL) {
 
@@ -531,7 +685,7 @@ static void deleteTheOnlyChild(struct rbNode_t* node) {
 }
 
 
-static void replaceWithChild (struct rbNode_t* node, struct rbNode_t* child) {
+static void replaceWithChild (rbNode  node, rbNode  child) {
 
     assert (child && node);
 
@@ -544,15 +698,16 @@ static void replaceWithChild (struct rbNode_t* node, struct rbNode_t* child) {
 }
 
 
-static void delete_case1 (struct rbNode_t* node)
+static void delete_case1 (rbNode  node)
 {
     if (node->parent != NULL)
         delete_case2(node);
 }
 
-static void delete_case2 (struct rbNode_t* node) {
 
-    struct rbNode_t* brother = findBrother (node);
+static void delete_case2 (rbNode  node) {
+
+    rbNode  brother = find_brother_(node);
 
     if (brother->color == RED) {
         node->parent->color = RED;
@@ -567,9 +722,10 @@ static void delete_case2 (struct rbNode_t* node) {
     delete_case3 (node);
 }
 
-static void delete_case3 (struct rbNode_t* node) {
 
-    struct rbNode_t*brother = findBrother (node);
+static void delete_case3 (rbNode  node) {
+
+    rbNode brother = find_brother_(node);
 
     if ((node->parent->color == BLACK) &&
         (brother->color == BLACK) &&
@@ -582,9 +738,10 @@ static void delete_case3 (struct rbNode_t* node) {
         delete_case4(node);
 }
 
-static void delete_case4 (struct rbNode_t* node) {
 
-    struct rbNode_t*brother = findBrother (node);
+static void delete_case4 (rbNode  node) {
+
+    rbNode brother = find_brother_(node);
 
     if ((node->parent->color == RED) &&
         (brother->color == BLACK) &&
@@ -597,9 +754,10 @@ static void delete_case4 (struct rbNode_t* node) {
         delete_case5(node);
 }
 
-static void delete_case5 (struct rbNode_t* node) {
 
-    struct rbNode_t*brother = findBrother (node);
+static void delete_case5 (rbNode  node) {
+
+    rbNode brother = find_brother_(node);
 
     if  (brother->color == BLACK) {
 
@@ -624,9 +782,10 @@ static void delete_case5 (struct rbNode_t* node) {
     delete_case6(node);
 }
 
-static void delete_case6 (struct rbNode_t* node) {
 
-    struct rbNode_t* brother = findBrother (node);
+static void delete_case6 (rbNode  node) {
+
+    rbNode  brother = find_brother_(node);
 
     brother->color = node->parent->color;
     node->parent->color = BLACK;
@@ -641,7 +800,7 @@ static void delete_case6 (struct rbNode_t* node) {
 }
 
 
-static void deleteTree (struct rbNode_t* tree) {
+static void deleteTree (rbNode  tree) {
 
     if (tree == NULL)
         return;
@@ -653,6 +812,13 @@ static void deleteTree (struct rbNode_t* tree) {
 
     free (tree);
 }
+/***
+ *
+ *   end of Removal functions
+ *
+ ****************************************************************************************/
+
+
 
 
 /****************************************************************************************
@@ -670,7 +836,7 @@ rbResult rbForeach (struct rbMap_t* tree, void (*act)(rbPair*, void*), void* dat
 }
 
 
-static void foreach_ (struct rbNode_t* tree, void (*act)(rbPair*, void*), void* data) {
+static void foreach_ (rbNode  tree, void (*act)(rbPair*, void*), void* data) {
 
     if (tree == NULL)
         return;

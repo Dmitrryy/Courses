@@ -19,26 +19,13 @@
 
 #include "RBTree/include/RBTree.h"
 
+#include "RBTree/tests/utests.h"
+
 int main()
 {
-    rbTree tree;
-    rbCreate(NULL, 0, &tree);
+#ifdef RUN_TESTS
+    return run_all_tests();
+#endif
 
-
-    for (size_t i = 0; i < 10; i++) {
-        rbPair p = {i, 2};
-        rbInsert(tree, p);
-    }
-
-    rbDump(tree);
-    rbClear(tree);
-
-    rbPair* pp = rbFind(tree, 1);
-
-
-/*    printf("%d %d\n", p.key, p.value);
-    if (pp != NULL)
-        printf("%d %d\n", pp->key, pp->value);*/
-
-    rbDestroy(tree);
+    return 0;
 }

@@ -25,25 +25,9 @@
 //
 #pragma once
 
-
-
-/****************************************************************************************
- *
- *   To test the case of memory allocation failure
- *
- ***/
-#ifdef TEST
-#define CALLOC(x, y) calloc_h(x, y)
-#else
-#define CALLOC(x, y) calloc(x, y)
-#endif
-/***
- *
- *   end of declaring macros for the test
- *
- ****************************************************************************************/
-
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 
 
 
@@ -59,8 +43,8 @@ struct rbPair_t;
 enum rbResult_enum_t {
     RB_SUCCESS = 0,
 
-    RB_LACK_OF_MEMORY,
-    RB_INVALID_ARGS
+    RB_LACK_OF_MEMORY = -10,
+    RB_INVALID_ARGS   = -11
 };
 
 
@@ -95,10 +79,6 @@ struct rbPair_t {
  *   interface functions
  *
  ***/
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
 
 
 /// Creates an instance of red-black tree
