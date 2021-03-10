@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include "utests.h"
+#include "stdlib.h"
 
 
 
@@ -24,6 +25,8 @@ int run_all_tests()
     test_rbEmpty();
     test_rbClear();
     test_rbDump();
+
+    test_random();
 
     return 0;
 }
@@ -267,5 +270,25 @@ void test_rbDump()
 
     assert(rbCreate(NULL, 0, &tree) == RB_SUCCESS);
     assert(rbDump(tree) == RB_SUCCESS);
+    assert(rbDestroy(tree) == RB_SUCCESS);
+}
+
+
+void test_random()
+{
+    rbTree tree = NULL;
+    assert(rbCreate(g_in_pairs_1, g_size_in1, &tree) == RB_SUCCESS);
+
+    for(size_t i = 0; i < 1000000; ++i)
+    {
+        rbPair p = { rand(), rand() };
+        rbInsert(tree, p);
+    }
+
+    for(size_t i = 0; i < 500000; ++i)
+    {
+        rbErase(tree, rand());
+    }
+
     assert(rbDestroy(tree) == RB_SUCCESS);
 }

@@ -36,7 +36,7 @@
  *   defining the types available to the user
  *
  ***/
-struct rbMap_t;
+struct rbTree_t;
 struct rbPair_t;
 
 
@@ -48,7 +48,7 @@ enum rbResult_enum_t {
 };
 
 
-typedef struct rbMap_t*      rbTree;
+typedef struct rbTree_t*      rbTree;
 
 typedef enum rbResult_enum_t rbResult;
 

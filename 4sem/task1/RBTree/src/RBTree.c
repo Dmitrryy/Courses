@@ -56,7 +56,7 @@ struct rbNode_t
 typedef struct rbNode_t* rbNode;
 
 
-struct rbMap_t
+struct rbTree_t
 {
     rbNode  treeRoot;
 };
@@ -164,7 +164,7 @@ rbResult rbCreate (const rbPair* data, size_t size, rbTree* tree)
         return RB_INVALID_ARGS;
     }
 
-    *tree = (struct rbMap_t*) CALLOC(1, sizeof(struct rbMap_t));
+    *tree = (struct rbTree_t*) CALLOC(1, sizeof(struct rbTree_t));
 
     if (*tree == NULL) {
         return RB_LACK_OF_MEMORY;
@@ -255,7 +255,7 @@ rbResult rbInsert (rbTree tree, rbPair pair) {
 }
 
 
-rbResult rbErase (struct rbMap_t* tree, int key) {
+rbResult rbErase (struct rbTree_t* tree, int key) {
 
     if (tree == NULL)
         return RB_INVALID_ARGS;
@@ -826,7 +826,7 @@ static void deleteTree (rbNode  tree) {
  *   foreach functions
  *
  ***/
-rbResult rbForeach (struct rbMap_t* tree, void (*act)(rbPair*, void*), void* data) {
+rbResult rbForeach (struct rbTree_t* tree, void (*act)(rbPair*, void*), void* data) {
 
     if (tree == NULL || act == NULL)
         return RB_INVALID_ARGS;

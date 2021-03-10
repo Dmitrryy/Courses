@@ -24,3 +24,5 @@ void test_rbErase();
 void test_rbEmpty();
 void test_rbClear();
 void test_rbDump();
+
+void test_random();
