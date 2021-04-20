@@ -53,9 +53,8 @@ static void swap_double (double* first, double* second) {
 
 
 
-// a, b is number, func != NULL, num_threads > 0 and cputop != NULL
-// a <= b
-static void* _pthread_calc_integral (void* pointer_int_arg) {
+
+static void* pthread_calc_integral_ (void* pointer_int_arg) {
     register integral_arg_t int_arg = *(integral_arg_t*) pointer_int_arg;
 
     int_arg.result = 0;
@@ -72,12 +71,12 @@ static void* _pthread_calc_integral (void* pointer_int_arg) {
 
 
 
-static void _detachThreads (pthread_t arr_tid[], size_t num_arr) {
+static void detachThreads_ (pthread_t* arr_tid, size_t num_arr) {
     for (int i = 0; i < num_arr; ++i)
         pthread_detach (arr_tid[i]);
 }
 
-static int _destroyAttrThread (pthread_attr_t pid_attr_arr[], unsigned num_arr) {
+static int destroyAttrThread_ (pthread_attr_t* pid_attr_arr, unsigned num_arr) {
     if (pid_attr_arr == NULL) {
         return -1; //TODO
     }
@@ -87,9 +86,8 @@ static int _destroyAttrThread (pthread_attr_t pid_attr_arr[], unsigned num_arr) 
     return 0;
 }
 
-// To evenly distribute the load, you should sort cputop by sorting cputopSortUniqSetsCoreId
-// tid_arr != NULL && cputop != NULL
-static int _distributeAttrThreads (pthread_attr_t tid_attr_arr[], unsigned num_threads, cpu_topology_t* cputop) {
+
+static int distributeAttrThreads_ (pthread_attr_t* tid_attr_arr, unsigned num_threads, cpu_topology_t* cputop) {
 
     const int num_logic_cpu = cputopGetNumLogicCPU (cputop);
     if (num_logic_cpu == -1) {
@@ -127,7 +125,7 @@ static int _distributeAttrThreads (pthread_attr_t tid_attr_arr[], unsigned num_t
 }
 
 
-static double _integral_linear (double a, double b, double (* func) (double),
+static double integrate (double a, double b, double (* func) (double),
         int num_threads, cpu_topology_t* cputop) {
 
 
@@ -139,7 +137,7 @@ static double _integral_linear (double a, double b, double (* func) (double),
 
     // Distribute threads to core and hyperthreads
     pthread_attr_t tid_attr_arr[num_threads + num_dummy];
-    int state = _distributeAttrThreads (tid_attr_arr, num_threads + num_dummy, cputop);
+    int state = distributeAttrThreads_(tid_attr_arr, num_threads + num_dummy, cputop);
     if (state) {
         PRINT_ERROR ("_distributeAttrThreads");
         return NAN;
@@ -164,11 +162,11 @@ static double _integral_linear (double a, double b, double (* func) (double),
         int_arg->a    = a;
         int_arg->b    = a += len;
 
-        state = pthread_create (&tid_arr[i], &tid_attr_arr[i], _pthread_calc_integral, (void*) int_arg);
+        state = pthread_create(&tid_arr[i], &tid_attr_arr[i], pthread_calc_integral_, (void*) int_arg);
         if (state) {
             PRINT_ERROR ("pthread_create");
-            _detachThreads (tid_arr, i);
-            _destroyAttrThread (tid_attr_arr, num_threads + num_dummy);
+            detachThreads_(tid_arr, i);
+            destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
             return NAN;
         }
     }
@@ -190,19 +188,19 @@ static double _integral_linear (double a, double b, double (* func) (double),
             int_arg->a    = a;
             int_arg->b    = a += len_dummy;
 
-            state = pthread_create (&tid_arr[i], &tid_attr_arr[i], _pthread_calc_integral, (void*) int_arg);
+            state = pthread_create(&tid_arr[i], &tid_attr_arr[i], pthread_calc_integral_, (void*) int_arg);
             if (state) {
                 PRINT_ERROR ("pthread_create");
-                _detachThreads (tid_arr, i);
-                _destroyAttrThread (tid_attr_arr, num_threads + num_dummy);
+                detachThreads_(tid_arr, i);
+                destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
                 return NAN;
             }
         }
     }
 
-    if (_destroyAttrThread (tid_attr_arr, num_threads + num_dummy) == -1) {
+    if (destroyAttrThread_(tid_attr_arr, num_threads + num_dummy) == -1) {
         PRINT_ERROR ("_destroyAttrThread");
-        _detachThreads (tid_arr, num_threads);
+        detachThreads_(tid_arr, num_threads);
         return -1;
     }
 
@@ -215,7 +213,7 @@ static double _integral_linear (double a, double b, double (* func) (double),
         if (state || ret_val != NULL) {
             errno = EINVAL;
             PRINT_ERROR ("pthread_join");
-            _detachThreads (tid_arr + i + 1, num_threads + num_dummy - i - 1);
+            detachThreads_(tid_arr + i + 1, num_threads + num_dummy - i - 1);
             return NAN;
         }
 
@@ -228,7 +226,7 @@ static double _integral_linear (double a, double b, double (* func) (double),
 
 
 
-double icCalculateMT(int numThreads, double begin, double end, icFunc func, enum ic_errors* err)
+double icCalculateMT(int numThreads, double begin, double end, icFunc func)
 {
     if ((isfinite (begin) && isfinite (end) && func != NULL && numThreads > 0) == false) {
         errno = EINVAL;
@@ -254,11 +252,7 @@ double icCalculateMT(int numThreads, double begin, double end, icFunc func, enum
         return NAN;
     }
 
-    // Less than 0.01 seconds passed
-
-
-    double result = _integral_linear (begin, end, func, numThreads, cputop);
-
+    double result = integrate(begin, end, func, numThreads, cputop);
 
     if (cputopDestroy (&cputop) == -1) {
         PRINT_ERROR ("cputopDestroy");

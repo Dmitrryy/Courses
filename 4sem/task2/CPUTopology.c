@@ -29,7 +29,7 @@ const int MAX_SIZE_TOPOLGY_FILE = 128;  // F.e cpu/online, cpu#/topology/core_id
 const int LOGIC_CPU_MAX = 256;
 
 
-typedef struct _cpu_topology_t cpu_topology_t;
+typedef struct cpu_topology_t_ cpu_topology_t;
 typedef struct _logic_cpu_t logic_cpu_t;
 
 
@@ -38,7 +38,7 @@ typedef struct _logic_cpu_t {
     int core_id;
 } logic_cpu_t;
 
-typedef struct _cpu_topology_t {
+typedef struct cpu_topology_t_ {
     int num_logic_cpu;
     logic_cpu_t* logic_cpus;
 } cpu_topology_t;
@@ -52,7 +52,7 @@ void print_error_line (const char strerr[], const char name_file[], int line);
 
 
 
-static bool _cputopVerifier(cpu_topology_t* cputop)
+static bool cputopVerifier_(cpu_topology_t* cputop)
 {
     return (cputop->num_logic_cpu > 0) && (cputop->logic_cpus != NULL);
 }
@@ -62,7 +62,7 @@ bool cputopVerifier(cpu_topology_t* cputop)
     if (cputop == NULL) {
         return -1;//TODO
     }
-    return _cputopVerifier(cputop);
+    return cputopVerifier_(cputop);
 }
 
 
@@ -71,7 +71,7 @@ bool cputopVerifier(cpu_topology_t* cputop)
 
 
 
-static void _cputopDestroy(cpu_topology_t** cputop)
+static void cputopDestroy_(cpu_topology_t** cputop)
 {
     if ((*cputop)->logic_cpus != NULL)
         free((*cputop)->logic_cpus);
@@ -80,7 +80,7 @@ static void _cputopDestroy(cpu_topology_t** cputop)
     *cputop = NULL;
 }
 
-static char* _readCpuTopologyFile(const char name_file[])
+static char* readCpuTopologyFile_(const char* name_file)
 {
     int fd = open(name_file, O_RDONLY);
     if (fd == -1) {
@@ -113,7 +113,7 @@ static char* _readCpuTopologyFile(const char name_file[])
 }
 
 // cputop != NULL && str_online != NULL
-static int _cputopFillLogicCPU(cpu_topology_t* cputop, char* str_online)
+static int cputopFillLogicCPU_(cpu_topology_t* cputop, char* str_online)
 {
     cputop->logic_cpus = (logic_cpu_t*) calloc(LOGIC_CPU_MAX, sizeof(logic_cpu_t));
     if (cputop->logic_cpus == NULL) {
@@ -158,15 +158,15 @@ static int _cputopFillLogicCPU(cpu_topology_t* cputop, char* str_online)
 }
 
 // cputop != NULL
-static int _cputopInitLogicCPU(cpu_topology_t* cputop)
+static int cputopInitLogicCPU_(cpu_topology_t* cputop)
 {
-    char* str_online = _readCpuTopologyFile(PATH_CPU FILE_ONLINE);
+    char* str_online = readCpuTopologyFile_(PATH_CPU FILE_ONLINE);
     if (str_online == NULL) {
         PRINT_ERROR ("_readCpuTopologyFile");
         return -1;
     }
 
-    if (_cputopFillLogicCPU(cputop, str_online) == -1) {
+    if (cputopFillLogicCPU_(cputop, str_online) == -1) {
         PRINT_ERROR ("_cputopFillLogicCPU");
         free(str_online);
         return -1;
@@ -178,7 +178,7 @@ static int _cputopInitLogicCPU(cpu_topology_t* cputop)
 }
 
 // cputop is correct
-static int _cputopFillCoreCPU(cpu_topology_t* cputop)
+static int cputopFillCoreCPU_(cpu_topology_t* cputop)
 {
     const int num_logic_cpus = cputop->num_logic_cpu;
     for (int i = 0; i < num_logic_cpus; ++i) {
@@ -187,7 +187,7 @@ static int _cputopFillCoreCPU(cpu_topology_t* cputop)
         char path_file[MAX_LEN_PATH] = {};
         sprintf(path_file, PATH_CPU DIR_TOPOLOGY "/" FILE_COREID, num_logic_cpu);
 
-        char* str_core_id = _readCpuTopologyFile(path_file);
+        char* str_core_id = readCpuTopologyFile_(path_file);
         if (str_core_id == NULL) {
             return -1;
         }//todo
@@ -202,9 +202,9 @@ static int _cputopFillCoreCPU(cpu_topology_t* cputop)
 }
 
 // cputop != NULL
-static int _cputopInitCoreCPU(cpu_topology_t* cputop)
+static int cputopInitCoreCPU_(cpu_topology_t* cputop)
 {
-    if (_cputopFillCoreCPU(cputop) == -1) {
+    if (cputopFillCoreCPU_(cputop) == -1) {
         PRINT_ERROR ("_cputopFillCoreCPU");
         return -1;
     }
@@ -227,7 +227,7 @@ int cputopDestroy(cpu_topology_t** cputop)
         return -1;
     }//todo
 
-    _cputopDestroy(cputop);
+    cputopDestroy_(cputop);
 
     return 0;
 }
@@ -241,12 +241,12 @@ int cputopInit(cpu_topology_t* cputop)
     if (cputop->logic_cpus != NULL)
         free(cputop->logic_cpus);
 
-    if (_cputopInitLogicCPU(cputop) == -1) {    // Read cpu/online
+    if (cputopInitLogicCPU_(cputop) == -1) {    // Read cpu/online
         PRINT_ERROR ("_cputopInitLogicCPU");
         return -1;
     }
 
-    if (_cputopInitCoreCPU(cputop) == -1) {         // Read cpu#/topology/core_id
+    if (cputopInitCoreCPU_(cputop) == -1) {         // Read cpu#/topology/core_id
         PRINT_ERROR ("_cputopInitCoreCPU");
         return -1;
     }
@@ -257,14 +257,14 @@ int cputopInit(cpu_topology_t* cputop)
 
 
 
-static int _cmpCoreId(const void* first, const void* second)
+static int cmpCoreId_(const void* first, const void* second)
 {
     return ((logic_cpu_t*) first)->core_id > ((logic_cpu_t*) second)->core_id;
 }
 
-static void _cputopSortCoreId(cpu_topology_t* cputop)
+static void cputopSortCoreId_(cpu_topology_t* cputop)
 {
-    qsort(cputop->logic_cpus, cputop->num_logic_cpu, sizeof(logic_cpu_t), _cmpCoreId);
+    qsort(cputop->logic_cpus, cputop->num_logic_cpu, sizeof(logic_cpu_t), cmpCoreId_);
 }
 
 int cputopSortUniqSetsCoreId(cpu_topology_t* cputop)
@@ -277,7 +277,7 @@ int cputopSortUniqSetsCoreId(cpu_topology_t* cputop)
         return -1;
     }
 
-    _cputopSortCoreId(cputop);
+    cputopSortCoreId_(cputop);
 
     const int num_logic_cpu = cputop->num_logic_cpu;
 
@@ -358,7 +358,7 @@ int cputopDump(cpu_topology_t* cputop)
         return -1;
     }//todo
 
-    if (_cputopVerifier(cputop) == false) {
+    if (cputopVerifier_(cputop) == false) {
         PRINT_ERROR ("cputopDump: cputop is not init\n");
         return -1;
     }

@@ -46,16 +46,9 @@ int main(int argc, char* argv[])
         exit(2);
     }
 
-    enum ic_errors err = IC_SUCCESS;
-    double res = icCalculateMT(numThreads, g_A, g_B, func, &err);
-    if (err == IC_SUCCESS) {
-        printf("res = %f\n", res);
-    }
-    else {
-        printf("error in icCalculateMT\n");
-        exit(3);
-    }
+    double res = icCalculateMT(numThreads, g_A, g_B, func);
 
+    printf("res = %f\n", res);
 
     return 0;
 }

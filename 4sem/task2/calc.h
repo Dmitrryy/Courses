@@ -17,13 +17,11 @@
 typedef double (* icFunc)(double);
 
 
-enum ic_errors
-{
-    IC_SUCCESS
-    , IC_BADARGS
-    , IC_MEMLACK
-    , IC_THREAD
-};
-
-
-double icCalculateMT(int numThreads, double begin, double end, icFunc func, enum ic_errors* err);
+///  function wor calculate integral for 'func' on range [begin, end]
+/// \param numThreads - num of threads for calculate
+/// \param begin      - left side of range
+/// \param end        - right side of range
+/// \param func       - integration function
+/// \param err        - if any wrong, in 'err' sets code of error
+/// \return result of calculation
+double icCalculateMT(int numThreads, double begin, double end, icFunc func);

@@ -13,7 +13,7 @@
 
 #include <stdbool.h>
 
-typedef struct _cpu_topology_t cpu_topology_t;
+typedef struct cpu_topology_t_ cpu_topology_t;
 
 cpu_topology_t* cputopCreate ();
 int cputopDestroy (cpu_topology_t** cputop);
