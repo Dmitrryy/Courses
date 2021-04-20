@@ -37,7 +37,7 @@ $(EXEC): $(LIB_OBJS) main.o
 test: test_build
 	./$(TEST_EXEC)
 
-test_build: build_test_lib build_test_main $(TEST_OBJS)
+test_build: build_test_lib build_test_main build_utests
 	$(LD) -o $(TEST_EXEC) $(LIB_OBJS) $(TEST_OBJS) main.o -DRUN_TESTS $(LDFLAGS)
 
 build_test_lib:
@@ -45,6 +45,11 @@ build_test_lib:
 
 build_test_main:
 	$(CC) main.c -o main.o -c -DRUN_TESTS $(LDFLAGS)
+
+
+build_utests:
+	$(CC) $(TEST_SRC) -o $(TEST_OBJS) -c -DRUN_TESTS $(LDFLAGS)
+
 
 view_coverage: test
 	lcov --capture --directory . --output-file coverage.info

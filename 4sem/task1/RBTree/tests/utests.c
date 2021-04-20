@@ -285,7 +285,7 @@ void test_random()
         rbInsert(tree, p);
     }
 
-    for(size_t i = 0; i < 500000; ++i)
+    for(size_t i = 0; i < 50000; ++i)
     {
         rbErase(tree, rand());
     }
