@@ -132,13 +132,16 @@ static double integrate (double a, double b, double (* func) (double),
     int num_dummy = 0, num_logic_cpu = cputopGetNumLogicCPU (cputop);
     if (num_threads < num_logic_cpu)
         num_dummy = num_logic_cpu - num_threads;
-    else if (num_threads > num_logic_cpu)
-        num_threads = num_logic_cpu;
 
-    // Distribute threads to core and hyperthreads
-    pthread_attr_t tid_attr_arr[num_threads + num_dummy];
+    pthread_attr_t* tid_attr_arr = (pthread_attr_t*) malloc ( sizeof(pthread_attr_t) * (num_threads + num_dummy) );
+    if (tid_attr_arr == NULL) {
+        PRINT_ERROR("cant allocate memory");
+        return NAN;
+    }
+
     int state = distributeAttrThreads_(tid_attr_arr, num_threads + num_dummy, cputop);
     if (state) {
+        free(tid_attr_arr);
         PRINT_ERROR ("_distributeAttrThreads");
         return NAN;
     }
@@ -151,8 +154,12 @@ static double integrate (double a, double b, double (* func) (double),
     const double dx  = (b - a) * eps;
     const double len = (b - a) / num_threads;
 
-    pthread_t      tid_arr [num_threads + num_dummy];
-    integral_arg_t int_args[num_threads + num_dummy];
+
+    pthread_t*      tid_arr = (pthread_t*)malloc(sizeof(pthread_t) * (num_threads + num_dummy) );
+    if (tid_arr == NULL) { PRINT_ERROR("cant allocate memory"); free(tid_attr_arr); return NAN; }
+    integral_arg_t* int_args = (integral_arg_t*)malloc(sizeof(integral_arg_t) * (num_threads + num_dummy) );
+    if (int_args == NULL) { PRINT_ERROR("cant allocate memory"); free(tid_attr_arr); free(tid_arr); return NAN; }
+
 
     // Create pthreads with special attributs
     for (int i = 0; i < num_threads; ++i) {
@@ -164,7 +171,8 @@ static double integrate (double a, double b, double (* func) (double),
 
         state = pthread_create(&tid_arr[i], &tid_attr_arr[i], pthread_calc_integral_, (void*) int_arg);
         if (state) {
-            PRINT_ERROR ("pthread_create");
+            PRINT_ERROR ("cant create a thread!");
+            free(tid_attr_arr); free(tid_arr); free(int_args);
             detachThreads_(tid_arr, i);
             destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
             return NAN;
@@ -191,6 +199,7 @@ static double integrate (double a, double b, double (* func) (double),
             state = pthread_create(&tid_arr[i], &tid_attr_arr[i], pthread_calc_integral_, (void*) int_arg);
             if (state) {
                 PRINT_ERROR ("pthread_create");
+                free(tid_attr_arr); free(tid_arr); free(int_args);
                 detachThreads_(tid_arr, i);
                 destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
                 return NAN;
@@ -200,6 +209,7 @@ static double integrate (double a, double b, double (* func) (double),
 
     if (destroyAttrThread_(tid_attr_arr, num_threads + num_dummy) == -1) {
         PRINT_ERROR ("_destroyAttrThread");
+        free(tid_attr_arr); free(tid_arr);
         detachThreads_(tid_arr, num_threads);
         return -1;
     }
@@ -214,12 +224,17 @@ static double integrate (double a, double b, double (* func) (double),
             errno = EINVAL;
             PRINT_ERROR ("pthread_join");
             detachThreads_(tid_arr + i + 1, num_threads + num_dummy - i - 1);
+            free(tid_attr_arr); free(tid_arr); free(int_args);
+
             return NAN;
         }
 
         if (i < num_threads)
             res += int_args[i].result;
     }
+
+    free(tid_attr_arr); free(tid_arr); free(int_args);
+
 
     return res * (2 * sign_int - 1) * dx;
 }
