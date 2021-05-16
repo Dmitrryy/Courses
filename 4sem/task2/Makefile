@@ -6,7 +6,7 @@ RM = rm -rf
 DEBUG_FLAGS = #-g
 WARNING_FLAGS = #-Wall
 
-CFLAGS   = -MD -pthread $(DEBUG_FLAGS) $(WARNING_FLAGS) -D_GNU_SOURCE
+CFLAGS   = -MD -pthread $(DEBUG_FLAGS) $(WARNING_FLAGS) -D_GNU_SOURCE -std=c99
 LDFLAGS  = $(CFLAGS) -lm
 
 OBJS = main.o calc.o CPUTopology.o

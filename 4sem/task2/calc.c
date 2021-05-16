@@ -7,6 +7,8 @@
  *
  ***/
 
+/*#define _GNU_SOURCE*/
+#include <sched.h>
 
 #include "calc.h"
 #include "CPUTopology.h"
@@ -135,13 +137,13 @@ static double integrate (double a, double b, double (* func) (double),
 
     pthread_attr_t* tid_attr_arr = (pthread_attr_t*) malloc ( sizeof(pthread_attr_t) * (num_threads + num_dummy) );
     if (tid_attr_arr == NULL) {
-        PRINT_ERROR("cant allocate memory");
+        PRINT_ERROR("cant allocate memory 1");
         return NAN;
     }
 
     int state = distributeAttrThreads_(tid_attr_arr, num_threads + num_dummy, cputop);
     if (state) {
-        free(tid_attr_arr);
+        //free(tid_attr_arr);
         PRINT_ERROR ("_distributeAttrThreads");
         return NAN;
     }
@@ -156,9 +158,9 @@ static double integrate (double a, double b, double (* func) (double),
 
 
     pthread_t*      tid_arr = (pthread_t*)malloc(sizeof(pthread_t) * (num_threads + num_dummy) );
-    if (tid_arr == NULL) { PRINT_ERROR("cant allocate memory"); free(tid_attr_arr); return NAN; }
+    if (tid_arr == NULL) { PRINT_ERROR("cant allocate memory 2"); /*free(tid_attr_arr);*/ return NAN; }
     integral_arg_t* int_args = (integral_arg_t*)malloc(sizeof(integral_arg_t) * (num_threads + num_dummy) );
-    if (int_args == NULL) { PRINT_ERROR("cant allocate memory"); free(tid_attr_arr); free(tid_arr); return NAN; }
+    if (int_args == NULL) { PRINT_ERROR("cant allocate memory 3"); /*free(tid_attr_arr); free(tid_arr);*/ return NAN; }
 
 
     // Create pthreads with special attributs
@@ -172,9 +174,9 @@ static double integrate (double a, double b, double (* func) (double),
         state = pthread_create(&tid_arr[i], &tid_attr_arr[i], pthread_calc_integral_, (void*) int_arg);
         if (state) {
             PRINT_ERROR ("cant create a thread!");
-            free(tid_attr_arr); free(tid_arr); free(int_args);
-            detachThreads_(tid_arr, i);
-            destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
+            //free(tid_attr_arr); free(tid_arr); free(int_args);
+            //detachThreads_(tid_arr, i);
+            //destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
             return NAN;
         }
     }
@@ -198,10 +200,10 @@ static double integrate (double a, double b, double (* func) (double),
 
             state = pthread_create(&tid_arr[i], &tid_attr_arr[i], pthread_calc_integral_, (void*) int_arg);
             if (state) {
-                PRINT_ERROR ("pthread_create");
+/*                PRINT_ERROR ("pthread_create");
                 free(tid_attr_arr); free(tid_arr); free(int_args);
                 detachThreads_(tid_arr, i);
-                destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);
+                destroyAttrThread_(tid_attr_arr, num_threads + num_dummy);*/
                 return NAN;
             }
         }
@@ -209,8 +211,8 @@ static double integrate (double a, double b, double (* func) (double),
 
     if (destroyAttrThread_(tid_attr_arr, num_threads + num_dummy) == -1) {
         PRINT_ERROR ("_destroyAttrThread");
-        free(tid_attr_arr); free(tid_arr);
-        detachThreads_(tid_arr, num_threads);
+/*        free(tid_attr_arr); free(tid_arr);
+        detachThreads_(tid_arr, num_threads);*/
         return -1;
     }
 
