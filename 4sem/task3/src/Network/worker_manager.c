@@ -1,3 +1,11 @@
+/*************************************************************************************************
+ *
+ *   worker_manager.c
+ *
+ *   Created by dmitry
+ *   10.05.2021
+ *
+ ***/
 
 #include "common.h"
 #include "Network/worker_manager.h"

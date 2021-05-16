@@ -1,57 +1,19 @@
-//
-// Created by artem on 20.04.2021.
-//
+/*************************************************************************************************
+ *
+ *   common.c
+ *
+ *   Created by dmitry
+ *   10.05.2021
+ *
+ ***/
+
 
 #include "common.h"
 #include "Network/worker_manager.h"
 #include "Network/worker.h"
 
 const double begin = 0.0;
-const double end = 500.0;
-
-/**
- * parse user arguments to define a role and parameters
- * @param argc size of argv[]
- * @param argv an array of user parameters
- * @return On success, it returns {@code start_pack} structure,
- * where will be role, number of machines and number of threads placed.
- * The {@code .server} field of structure will be either 1 if it is server
- * or 0 if it is worker part. On error, {@code .server}
- * field of structure will be -1.
- */
-struct start_pack parse_args (int argc, char *argv[]) {
-
-    struct start_pack res = {0, 0, 0};
-
-    char *serv_flag = "-s";
-
-    if (argc > 2 && argc < 4) {
-        fprintf (stderr, "Not all args for server, and redundant for worker\n");
-        res.server = -1;
-        return res;
-    }
-
-    if (argc == 1) {
-        return res;
-    }
-
-    if (argc == 4) {
-
-        if (strcmp (argv[1], serv_flag) != 0) {
-            fprintf (stderr, "usage: '-s' n_machines n_threads\n");
-            res.server = -1;
-            return res;
-        }
-
-        res.server = 1;
-        res.n_machines = (size_t) strtol (argv[2], NULL, 10);
-        res.n_threads = (size_t) strtol (argv[3], NULL, 10);
-    }
-
-    return res;
-}
-
-
+const double end = 400.0;
 
 
 /**

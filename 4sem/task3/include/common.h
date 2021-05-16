@@ -1,6 +1,11 @@
-//
-// Created by artem on 20.04.2021.
-//
+/*************************************************************************************************
+ *
+ *   common.h
+ *
+ *   Created by dmitry
+ *   10.05.2021
+ *
+ ***/
 
 #pragma once
 
@@ -10,7 +15,12 @@
 #define TCP_PORT 8011
 
 enum error {
-    SUCCESS = 0, E_INVAL, E_SOCK, E_CONN, E_MEM, E_THREAD
+    SUCCESS = 0
+    , E_INVAL
+    , E_SOCK
+    , E_CONN
+    , E_MEM
+    , E_THREAD
 };
 
 struct start_pack {
@@ -19,8 +29,8 @@ struct start_pack {
     size_t n_machines;
 };
 
+
 void p_error (enum error err);
 void run_server(size_t n_threads, size_t n_machines);
 void run_worker ();
-struct start_pack parse_args (int args, char *argv[]);
 int set_keepalive (int socket, int keepcnt, int keepidle, int keepintvl);

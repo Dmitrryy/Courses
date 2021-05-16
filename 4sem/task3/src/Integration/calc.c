@@ -1,6 +1,11 @@
-//
-// Created by artem on 01.03.2021.
-//
+/*************************************************************************************************
+ *
+ *   calc.c
+ *
+ *   Created by dmitry
+ *   10.05.2021
+ *
+ ***/
 
 #include "common.h"
 #include "Integration/calc.h"

@@ -1,6 +1,11 @@
-//
-// Created by artem on 17.03.2021.
-//
+/*************************************************************************************************
+ *
+ *   pthread_manager.c
+ *
+ *   Created by dmitry
+ *   10.05.2021
+ *
+ ***/
 
 #include "Integration/pthread_manager.h"
 

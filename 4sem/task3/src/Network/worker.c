@@ -1,6 +1,13 @@
-//
-// Created by artem on 20.04.2021.
-//
+/*************************************************************************************************
+ *
+ *   worker.c
+ *
+ *   Created by dmitry
+ *   10.05.2021
+ *
+ ***/
+
+
 #include "common.h"
 #include "Network/worker.h"
 #include "Network/worker_manager.h"
