@@ -5,5 +5,3 @@ project(Lunev)
 add_subdirectory(4sem/task1)
 
 add_subdirectory(4sem/task2)
-
-add_subdirectory(4sem/task3)
