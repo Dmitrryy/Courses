@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/ddrozdov/Documents/GitHub/MIPT_prog/6sem/MPI/RangeSum",
+  "command": "/usr/bin/c++  -isystem /usr/include/x86_64-linux-gnu/mpich -flto=auto -o CMakeFiles/NRange.dir/NRange.cpp.o -c /home/ddrozdov/Documents/GitHub/MIPT_prog/6sem/MPI/RangeSum/NRange.cpp",
+  "file": "/home/ddrozdov/Documents/GitHub/MIPT_prog/6sem/MPI/RangeSum/NRange.cpp"
+}
+]
