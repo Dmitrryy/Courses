@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
 
     if (argc != 3) {
         printf("invalid arguments command line:\n argc = %d\n", argc);
-        printf("They are:\n");
+        printf("Required 2: [terms in a row] [desired accuracy]");
+        printf("We provide:\n");
         for (int i = 0; i < argc; i++)
         {
             printf ("[%d] %s\n", i, argv[i]);
@@ -82,20 +83,18 @@ int main(int argc, char *argv[])
         local_sum += q;
     }
 
+
     MPI_Op op = {};
     MPI_Op_create( (MPI_User_function *) sum_mpi_string, 1, &op );
 
+
+    size_t buffer_size = accuracy * 1.5;
     std::string result;
     if(proc_id == 0)
-        result.resize(accuracy * 2);
+        result.resize(buffer_size);
+    MPI_Reduce(local_sum.str().data(), result.data(), buffer_size, MPI_CHAR, op, 0, MPI_COMM_WORLD);
 
-    std::ostringstream out;
-    out << local_sum.str() << '\0';
-    auto&& str = out.str();
-    str.reserve(accuracy * 2);
-
-    MPI_Reduce(str.data(), result.data(), accuracy * 2, MPI_CHAR, op, 0, MPI_COMM_WORLD);
-
+    // provide the result
     if (proc_id == 0) {
         my_float q, r;
         my_float res(result.data());
