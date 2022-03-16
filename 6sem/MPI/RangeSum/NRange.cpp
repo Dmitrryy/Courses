@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
     unsigned min_vector_size = global_vector_size / world_size;
     unsigned max_vector_size = min_vector_size + ((global_vector_size % world_size) > 0);
     unsigned num_process_with_max_size = global_vector_size % world_size;
-    unsigned num_process_with_min_size = world_size - num_process_with_max_size;
     unsigned range_offset = max_vector_size * std::min((int) num_process_with_max_size, world_rank)
                             + min_vector_size * std::max(0, world_rank - (int) num_process_with_max_size);
     printf("rank %d; local_size %d; voffset %u\n", world_rank, max_vector_size, range_offset);
@@ -56,40 +55,5 @@ int main(int argc, char **argv) {
         std::cout << "Res: " << res << std::endl;
     }
 
-#if 0
-    std::vector<float> vecRes(max_vector_size);
-    unsigned current_size = global_vector_size;
-    size_t iterations = 0;
-    while ((world_size > 1 && current_size >= world_size) || iterations == 0) {
-        min_vector_size = current_size / world_size;
-        max_vector_size = min_vector_size + ((current_size % world_size) > 0);
-        num_process_with_max_size = current_size % world_size;
-        num_process_with_min_size = world_size - num_process_with_max_size;
-        range_offset = max_vector_size * std::min((int) num_process_with_max_size, world_rank)
-                       + min_vector_size * std::max(0, world_rank - (int) num_process_with_max_size);
-        if (iterations == 0) { range_offset = 0; }
-
-        if(world_rank == world_size - 1 && current_size % max_vector_size) {
-            vecBase.back() = 0;
-        }
-        MPI_Allreduce(vecBase.data() + range_offset, vecRes.data(), max_vector_size, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-
-        vecBase.resize(current_size);
-        vecRes.resize(current_size);
-        std::swap(vecBase, vecRes);
-        printf("[%u] rank %d; global_vec_size %u; local_size %d; voffset %u\n", iterations, world_rank, current_size, max_vector_size, range_offset);
-        fflush(0);
-
-        current_size = current_size / world_size + ((current_size % world_size) > 0);
-        iterations++;
-    }
-    const auto &vecResult = vecBase;
-
-
-    if (world_rank == 0) {
-        result = std::accumulate(vecResult.cbegin(), vecResult.cend(), 0.f);
-        std::cout << "Result: " << result << std::endl;
-    }
-#endif
     MPI_Finalize();
 }
