@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Lunev)
+project(MIPT)
 
 
-add_subdirectory(6sem/MPI/Hello)
-add_subdirectory(6sem/MPI/RangeSum)
-add_subdirectory(6sem/MPI/SendRecive)
-add_subdirectory(6sem/MPI/Exp)
+add_subdirectory(parprog/Hello)
+add_subdirectory(parprog/RangeSum)
+add_subdirectory(parprog/SendRecive)
+add_subdirectory(parprog/Exp)
