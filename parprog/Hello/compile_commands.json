@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/ddrozdov/Documents/GitHub/MIPT_prog/6sem/MPI/Hello",
-  "command": "/usr/bin/c++  -isystem /usr/include/x86_64-linux-gnu/mpich -flto=auto -o CMakeFiles/hello.dir/HelloMPI.cpp.o -c /home/ddrozdov/Documents/GitHub/MIPT_prog/6sem/MPI/Hello/HelloMPI.cpp",
-  "file": "/home/ddrozdov/Documents/GitHub/MIPT_prog/6sem/MPI/Hello/HelloMPI.cpp"
-}
-]
