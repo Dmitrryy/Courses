@@ -18,22 +18,21 @@ int main(int argc, char *argv[]) {
 
     const float c = 1.f;
     auto&& F = [](float t, float x) -> float {
-        return 0.f;
+        return 1.f;
     };
     auto&& fi = [](float x) -> float {
-        return x > 2;
+        return 1;
     };
     auto&& ksi = [](float t) -> float {
-        return 0;
+        return 1;
     };
-    const float t_max = 7;
-    const float x_max = 8;
-    const float tau = 1.f;
-    const float h = 1.f;
+    const float t_max = 40;
+    const float x_max = 40;
+    const float tau = 0.01f;
+    const float h = 0.01f;
 
     const size_t N_t = t_max / tau + 1;
     const size_t N_x = x_max / h + 1;
-
 
     if (auto rc = MPI_Init(&argc, &argv)) {
         std::cout << "Ошибка запуска, выполнение остановлено " << std::endl;
@@ -50,10 +49,8 @@ int main(int argc, char *argv[]) {
     for (std::vector<float>& v : matrix) {
         v.resize(N_x);
     }
-    //if (proc_id == 0) {
-        for (size_t k = 0; k < N_t; ++k)
-            matrix[k][0] = ksi(tau * k);
-    //}
+    for (size_t k = 0; k < N_t; ++k)
+        matrix[k][0] = ksi(tau * k);
 
     double startTime = {};
     if (proc_id == 0) {
@@ -77,33 +74,43 @@ int main(int argc, char *argv[]) {
                         * (F((k-1/2)*tau, (m-1/2)*h)
                         - (matrix[k][m-1] - matrix[k-1][m-1] - matrix[k-1][m]) / (2*tau)
                         - c * (-matrix[k][m-1] + matrix[k-1][m] - matrix[k-1][m-1]) / (2*h) );
-                //matrix[iteration][m] = iteration;
             }
             MPI_Request req;
-            MPI_Isend(&(matrix[iteration][m]), 1, MPI_FLOAT
+            MPI_Send(&(matrix[iteration][m]), 1, MPI_FLOAT
                       , (iteration + 1) % num_processes, m
-                      , MPI_COMM_WORLD, &req);
+                      , MPI_COMM_WORLD);
             //send
         }
     }
 
     std::vector<float> res;
     if (proc_id == 0) {
-        res.resize(N_t * N_x);
+        res.resize((N_t + (num_processes - N_t % num_processes)) * N_x);
     }
-    for (size_t i = proc_id; i < N_t; i += num_processes) {
+    std::vector<float>  vEmpty(N_x, 0);
+    for (size_t i = proc_id; i < N_t + (num_processes - N_t % num_processes); i += num_processes) {
         //std::cout << i << " : " << matrix[i] << std::endl;
-        MPI_Gather(matrix[i].data(), N_x, MPI_FLOAT
+        float* sendBuff = vEmpty.data();
+        if(i <= N_t - N_t % num_processes) {
+            sendBuff = matrix[i].data();
+        }
+        MPI_Gather(sendBuff, N_x, MPI_FLOAT
                    , res.data() + i * N_x, N_x, MPI_FLOAT, 0, MPI_COMM_WORLD);
     }
-    if(proc_id == 0) {
+
+    auto endTime = MPI_Wtime();
+    if (proc_id == 0) {
+        std::cout << "Time: "    << (endTime - startTime) * 1000 << std::endl;
+    }
+
+/*    if(proc_id == 0) {
         for (size_t l = 0; l < N_t; l++) {
             for (size_t col = 0; col < N_x; col++) {
                 std::cout << res[l * N_x + col] << ' ';
             }
             std::cout << std::endl;
         }
-    }
+    }*/
 
     MPI_Finalize();
 }
