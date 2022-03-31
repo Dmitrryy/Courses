@@ -32,8 +32,8 @@ int main(int argc, char *argv[]) {
     auto&& ksi = [c](float t) -> float {
         return c * t * t * t / 12;
     };
-    const float t_max = 2;
-    const float x_max = 2;
+    const float t_max = 20;
+    const float x_max = 20;
     const float tau = 0.01f;
     const float h = 0.01f;
 
