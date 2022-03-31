@@ -3,6 +3,7 @@
 //
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 #include <mpi.h>
 
@@ -15,24 +16,30 @@ std::ostream& operator <<(std::ostream& out, const std::vector<T> &v) {
 }
 
 int main(int argc, char *argv[]) {
+    std::string outFName("result.txt");
+    if(argc > 1) {
+        outFName = argv[1];
+    }
 
-    const float c = 1.f;
+    // Условия на уравнение
+    const float c = 0.6f;
     auto&& F = [](float t, float x) -> float {
-        return 1.f;
+        return t * x;
     };
-    auto&& fi = [](float x) -> float {
-        return 1;
+    auto&& fi = [c](float x) -> float {
+        return x * x * x / (12 * c * c);
     };
-    auto&& ksi = [](float t) -> float {
-        return 1;
+    auto&& ksi = [c](float t) -> float {
+        return c * t * t * t / 12;
     };
-    const float t_max = 40;
-    const float x_max = 40;
+    const float t_max = 2;
+    const float x_max = 2;
     const float tau = 0.01f;
     const float h = 0.01f;
 
     const size_t N_t = t_max / tau + 1;
     const size_t N_x = x_max / h + 1;
+
 
     if (auto rc = MPI_Init(&argc, &argv)) {
         std::cout << "Ошибка запуска, выполнение остановлено " << std::endl;
@@ -75,11 +82,9 @@ int main(int argc, char *argv[]) {
                         - (matrix[k][m-1] - matrix[k-1][m-1] - matrix[k-1][m]) / (2*tau)
                         - c * (-matrix[k][m-1] + matrix[k-1][m] - matrix[k-1][m-1]) / (2*h) );
             }
-            MPI_Request req;
             MPI_Send(&(matrix[iteration][m]), 1, MPI_FLOAT
                       , (iteration + 1) % num_processes, m
                       , MPI_COMM_WORLD);
-            //send
         }
     }
 
@@ -89,7 +94,6 @@ int main(int argc, char *argv[]) {
     }
     std::vector<float>  vEmpty(N_x, 0);
     for (size_t i = proc_id; i < N_t + (num_processes - N_t % num_processes); i += num_processes) {
-        //std::cout << i << " : " << matrix[i] << std::endl;
         float* sendBuff = vEmpty.data();
         if(i <= N_t - N_t % num_processes) {
             sendBuff = matrix[i].data();
@@ -103,14 +107,16 @@ int main(int argc, char *argv[]) {
         std::cout << "Time: "    << (endTime - startTime) * 1000 << std::endl;
     }
 
-/*    if(proc_id == 0) {
+    if(proc_id == 0) {
+        std::ofstream out(outFName);
         for (size_t l = 0; l < N_t; l++) {
             for (size_t col = 0; col < N_x; col++) {
-                std::cout << res[l * N_x + col] << ' ';
+                out << res[l * N_x + col] << ' ';
             }
-            std::cout << std::endl;
+            out << std::endl;
         }
-    }*/
+        out.close();
+    }
 
     MPI_Finalize();
 }
