@@ -109,6 +109,8 @@ int main(int argc, char *argv[]) {
 
     if(proc_id == 0) {
         std::ofstream out(outFName);
+        out << x_max << " " << h   << " "
+            << t_max << " " << tau << " " << std::endl;
         for (size_t l = 0; l < N_t; l++) {
             for (size_t col = 0; col < N_x; col++) {
                 out << res[l * N_x + col] << ' ';

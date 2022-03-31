@@ -41,7 +41,7 @@ mpiexec -np <nProc> .\lab1 [<out file name>(optional)]
 ```
 Drawing a graph based on the received data
 ```
-python3 ..\process.py <data file name>
+py ..\process.py <name of file with results>
 ```
 
 ## Theoretical evaluation of efficiency
