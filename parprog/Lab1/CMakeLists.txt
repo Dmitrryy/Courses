@@ -14,8 +14,11 @@ message(STATUS "Run: ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS} 
 
 set(HELLO_EXEC lab1)
 add_executable(${HELLO_EXEC} main.cpp)
-target_include_directories(${HELLO_EXEC}
-        PUBLIC ThirdParty/matrix
-        PRIVATE ThirdParty)
 target_link_libraries(${HELLO_EXEC} PUBLIC
+        PUBLIC MPI::MPI_CXX)
+
+
+set(DOP_EXEC dop)
+add_executable(${DOP_EXEC} main_dop.cpp)
+target_link_libraries(${DOP_EXEC} PUBLIC
         PUBLIC MPI::MPI_CXX)
