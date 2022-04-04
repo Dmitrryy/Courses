@@ -4,6 +4,8 @@
 
 ## Problem statement
 
+You can look at the solution method with graphs [here](https://colab.research.google.com/drive/112bQvGrVQiFyvo8js77uDMWQGLMw1yeK?usp=sharing)
+
 The main task of this laboratory work is the development and
 research of a parallel program that searches for a numerical solution for
 the transfer equation:
@@ -48,7 +50,7 @@ py ..\process.py <name of file with results>
 
 мне лень
 
-## Security questions
+## Control question
 
 1. Acceleration and efficiency of parallel algorithms.
 2. Amdahl's Law.
