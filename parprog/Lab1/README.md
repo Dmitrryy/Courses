@@ -46,17 +46,6 @@ Drawing a graph based on the received data
 py ..\process.py <name of file with results>
 ```
 
-## Theoretical evaluation of efficiency
+## Evaluation of efficiency
 
-мне лень
-
-## Control question
-
-1. Acceleration and efficiency of parallel algorithms.
-2. Amdahl's Law.
-3. Properties of the data transmission channel. Latency.
-4. Types of point-to-point exchanges: synchronous, asynchronous. Data buffering.
-5. Load balancing: static and dynamic.
-6. Geometric parallelism.
-7. Pipeline parallelism.
 
