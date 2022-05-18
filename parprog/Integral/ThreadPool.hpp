@@ -11,13 +11,14 @@
 #include <future>
 #include <unordered_set>
 
+template< class Ret_T >
 class ThreadPool final
 {
     // pool потоков, которые выполняют задачи из очереди
     std::vector<std::thread> m_threads;
 
     // очередь задач - хранит функцию(задачу), которую нужно исполнить и номер задачи
-    std::queue<std::pair<std::future<void>, int64_t>> m_queue;
+    std::queue<std::pair<std::future< Ret_T >, int64_t>> m_queue;
     std::mutex m_queueMutex;
     std::condition_variable m_queueCV;
 
@@ -33,14 +34,14 @@ class ThreadPool final
     std::atomic<int64_t> m_lastID = 0;
 
 public:
-    ThreadPool(size_t numThreads)
+    ThreadPool(size_t numThreads, std::function<void(size_t, Ret_T)> &ResHolder)
     {
         m_threads.reserve(numThreads);
         for (size_t i = 0; i < numThreads; ++i)
         {
-            m_threads.emplace_back(&ThreadPool::run, this);
+            m_threads.emplace_back(&ThreadPool::run, this, i, std::ref(ResHolder));
         }
-    }
+    }   
 
     ~ThreadPool()
     {
@@ -54,7 +55,7 @@ public:
     }
 
 public:
-    void run()
+    void run(size_t threadID, std::function<void(size_t, Ret_T)> &ResHolder)
     {
         while (!m_quite)
         {
@@ -69,7 +70,8 @@ public:
                 m_queue.pop();
                 lock.unlock();
 
-                elem.first.get();
+                //обрабатываем результат
+                ResHolder(threadID, elem.first.get());
 
                 std::lock_guard<std::mutex> lock(m_mtxCompleted);
 
