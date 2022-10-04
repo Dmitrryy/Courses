@@ -1,9 +1,12 @@
 #include "SEngine.hpp"
 
-#include <array>
 
-std::array<uint8_t, 4> shader_1_f(const std::array<int64_t, 2> &fragCoord, const std::array<int64_t, 2>& resolution, int64_t time);
+uint32_t shader_1(int64_t x, int64_t y, int64_t res_x, int64_t res_y, int64_t time);
 
+uint8_t unpack_4ui8_r(uint32_t rgba);
+uint8_t unpack_4ui8_g(uint32_t rgba);
+uint8_t unpack_4ui8_b(uint32_t rgba);
+uint8_t unpack_4ui8_a(uint32_t rgba);
 
 int main()
 {
@@ -19,8 +22,8 @@ int main()
         {
             for (int64_t x = 0; x < width; ++x)
             {
-                auto &&color = shader_1_f({x, y}, {width, heigth}, cur_time);
-                put_pixel(x, y, color[0], color[1], color[2], color[3]);
+                uint32_t color = shader_1(x, y, width, heigth, cur_time);
+                put_pixel(x, y, unpack_4ui8_r(color), unpack_4ui8_g(color), unpack_4ui8_b(color), unpack_4ui8_a(color));
             }
         }
         
@@ -30,17 +33,34 @@ int main()
     return 0;   
 }
 
+uint32_t pack_4ui8_to_ui32(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+    uint32_t result = 0;
+    result = result | (a);
+    result = result | (b << 8);
+    result = result | (g << 16);
+    result = result | (r << 24);
+
+    return result;
+}
+
+uint8_t unpack_4ui8_r(uint32_t rgba) { return (rgba & 0xFF000000) >> 24; }
+uint8_t unpack_4ui8_g(uint32_t rgba) { return (rgba & 0x00FF0000) >> 16; }
+uint8_t unpack_4ui8_b(uint32_t rgba) { return (rgba & 0x0000FF00) >> 8;  }
+uint8_t unpack_4ui8_a(uint32_t rgba) { return (rgba & 0x000000FF);       }
 
 /**
- * @brief T = 4000
+ * @brief Integer approximation of cos. Period T = 4000. 
+ * A parabola is used for approximation.
  * 
- * @param x 
- * @return int32_t 
+ * @param x - arg
+ * @return int32_t - approximate value of cos * 10^3.
  */
-int64_t int_cos(int64_t x)  {
+int64_t int_cos(int64_t x)  
+{
     int64_t fracted_x = x % 1000;
     int64_t per_id = (std::abs(x) % 4000) / 1000;
-    if(per_id == 1 || per_id == 3) {
+    if(per_id % 2) {
         fracted_x = 1000 - fracted_x;
     }
 
@@ -49,75 +69,54 @@ int64_t int_cos(int64_t x)  {
     return y * sign;
 }
 
-
-std::array<int8_t, 3> palette_int(int64_t t
-, const std::array<int64_t, 3>& a
-, const std::array<int64_t, 3>& b
-, const std::array<int64_t, 3>& c
-, const std::array<int64_t, 3>& d) {
-    std::array<int8_t, 3> result;
-    result[0] = (a[0] + b[0] * int_cos(628318 * (c[0] * t / 1000 + d[0])/100000) / 1000) / 5;
-    result[1] = (a[1] + b[1] * int_cos(628318 * (c[1] * t / 1000 + d[1])/100000) / 1000) / 5;
-    result[2] = (a[2] + b[2] * int_cos(628318 * (c[2] * t / 1000 + d[2])/100000) / 1000) / 5;
-    return result;
-}
-
-
-std::array<int64_t, 2> fractal_step(const std::array<int64_t, 2>& x, const std::array<int64_t, 2>& c) {
-    std::array<int64_t, 2> result;
-    result[0] = (x[0] * x[0] - x[1] * x[1]) / 1000 + c[0];
-    result[1] = (x[1] * x[0] + x[0] * x[1]) / 1000 + c[1];
-
-    return result;
-}
-
-
-std::array<uint8_t, 4> shader_1_f(const std::array<int64_t, 2> &fc, const std::array<int64_t, 2>& res, int64_t time)
+/**
+ * @brief related to shader_1
+ */
+uint32_t palette_int(int64_t t, int64_t d1, int64_t d2, int64_t d3) 
 {
-    std::array<uint8_t, 4> result = {0, 0, 0, 255};
-    std::array<int64_t, 2> uv = {
-        fc[0] * 1000 / res[0],
-        fc[1] * 1000 / res[1]
-    };
+    uint8_t x = (500 + 500 * int_cos(628318 * (1000 * t / 1000 + d1)/100000) / 1000) / 5;
+    uint8_t y = (500 + 500 * int_cos(628318 * (1000 * t / 1000 + d2)/100000) / 1000) / 5;
+    uint8_t z = (500 + 500 * int_cos(628318 * (0    * t / 1000 + d3)/100000) / 1000) / 5;
+    return pack_4ui8_to_ui32(x, y, z, t / 4);
+}
+
+
+uint32_t shader_1(int64_t x, int64_t y, int64_t res_x, int64_t res_y, int64_t time)
+{
+    uint32_t result = 0x000000FF;
+
+    int64_t uv_x = x * 1000 / res_x;
+    int64_t uv_y = y * 1000 / res_y;
     time = time / 2;
 
-    uint32_t maxIter = 100;
+    uint32_t maxIter = 75;
     int64_t r = 788*(int_cos((time / 3) - 2000) / 5 + 850) / 1000; // 10^-3
-    std::array<int64_t, 2> c = {
-        r * int_cos(time / 3) / 1000,
-        r * int_cos(time / 3 + 3000) / 1000
-    };
+    
+    int64_t c1 = r * int_cos(time / 3) / 1000;
+    int64_t c2 = r * int_cos(time / 3 + 3000) / 1000;
 
-    std::array<int64_t, 2> z = {
-        3 * (uv[0] - 500),
-        2 * (uv[1] - 500)
-    };
+    int64_t z1 = 3 * (uv_x - 500);
+    int64_t z2 = 2 * (uv_y - 500);
 
     bool escaped = false;
     uint32_t iterations = 0;
     for (; iterations < maxIter; ++iterations) {
-        z = fractal_step(z, c);
-        if((z[0] * z[0] + z[1] * z[1]) / 10000 > 4000) {
+        int64_t z1_tmp = (z1 * z1 - z2 * z2) / 1000 + c1;
+        z2 = (z2 * z1 + z1 * z2) / 1000 + c2;
+        z1 = z1_tmp;
+        if((z1 * z1 + z2 * z2) / 10000 > 4000) {
             escaped = true;
             break;
         }
     }
 
-    auto&& iterCol = palette_int(iterations * 1000 / maxIter, 
-    {500, 500, 500},
-    {500, 500, 500},
-    {1000, 1000, 0},
-    { 300 + (int_cos(time + 3000) * 2 / 5),
-    200 + (int_cos(time + 3600) * 3 / 10 ),
-    200 + (int_cos(time + 4400) * 3 / 10 )}
-    );
-
     if(escaped){
-        result[0] = iterCol[0];
-        result[1] = iterCol[1];
-        result[2] = iterCol[2];
+        result = palette_int(iterations * 1000 / maxIter,
+            300 + (int_cos(time + 3000) * 2 / 5),
+            200 + (int_cos(time + 3600) * 3 / 10 ),
+            200 + (int_cos(time + 4400) * 3 / 10 )
+            );
     }
-    result[3] = iterations * 255 / maxIter;
 
     return result;
 }

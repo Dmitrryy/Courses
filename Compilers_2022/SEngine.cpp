@@ -17,7 +17,7 @@ void sEngine_init(uint32_t width, uint32_t heigth)
 {
     g_width = width;
     g_heigth = heigth;
-    g_window = std::make_unique<sf::RenderWindow>(sf::VideoMode(g_width, g_heigth), "Compiler&");
+    g_window = std::make_unique<sf::RenderWindow>(sf::VideoMode(g_width, g_heigth), "Compiler_2022");
     g_image.create(g_width, g_heigth);
 
     sf::View view(sf::FloatRect(0.f, 0.f, g_width, g_heigth));
