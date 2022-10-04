@@ -1,12 +1,5 @@
-; ModuleID = './main.cpp'
-source_filename = "./main.cpp"
-target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-pc-linux-gnu"
 
-$_ZSt3absl = comdat any
-
-; Function Attrs: noinline norecurse optnone uwtable
-define dso_local i32 @main() #0 {
+define dso_local i32 @main() {
   %1 = alloca i32, align 4
   %2 = alloca i64, align 8
   %3 = alloca i64, align 8
@@ -17,85 +10,78 @@ define dso_local i32 @main() #0 {
   store i32 0, i32* %1, align 4
   store i64 1024, i64* %2, align 8
   store i64 576, i64* %3, align 8
-  call void @_Z12sEngine_initjj(i32 1024, i32 576)
+  call void @sEngine_init(i32 1024, i32 576)
   br label %8
 
-8:                                                ; preds = %43, %0
-  %9 = call zeroext i1 @_Z20sEngine_windowIsOpenv()
-  br i1 %9, label %10, label %44
+8:                                                ; preds = %37, %0
+  %9 = call i32 (...) @sEngine_windowIsOpen()
+  %10 = icmp ne i32 %9, 0
+  br i1 %10, label %11, label %38
 
-10:                                               ; preds = %8
-  %11 = call i64 @get_time_milliseconds()
-  store i64 %11, i64* %4, align 8
+11:                                               ; preds = %8
+  %12 = call i64 (...) @get_time_milliseconds()
+  store i64 %12, i64* %4, align 8
   store i64 0, i64* %5, align 8
-  br label %12
+  br label %13
 
-12:                                               ; preds = %40, %10
-  %13 = load i64, i64* %5, align 8
-  %14 = icmp slt i64 %13, 576
-  br i1 %14, label %15, label %43
+13:                                               ; preds = %34, %11
+  %14 = load i64, i64* %5, align 8
+  %15 = icmp slt i64 %14, 576
+  br i1 %15, label %16, label %37
 
-15:                                               ; preds = %12
+16:                                               ; preds = %13
   store i64 0, i64* %6, align 8
-  br label %16
+  br label %17
 
-16:                                               ; preds = %36, %15
-  %17 = load i64, i64* %6, align 8
-  %18 = icmp slt i64 %17, 1024
-  br i1 %18, label %19, label %39
+17:                                               ; preds = %30, %16
+  %18 = load i64, i64* %6, align 8
+  %19 = icmp slt i64 %18, 1024
+  br i1 %19, label %20, label %33
 
-19:                                               ; preds = %16
-  %20 = load i64, i64* %6, align 8
-  %21 = load i64, i64* %5, align 8
-  %22 = load i64, i64* %4, align 8
-  %23 = call i32 @_Z8shader_1lllll(i64 %20, i64 %21, i64 1024, i64 576, i64 %22)
-  store i32 %23, i32* %7, align 4
-  %24 = load i64, i64* %6, align 8
-  %25 = trunc i64 %24 to i32
-  %26 = load i64, i64* %5, align 8
-  %27 = trunc i64 %26 to i32
-  %28 = load i32, i32* %7, align 4
-  %29 = call zeroext i8 @_Z13unpack_4ui8_rj(i32 %28)
-  %30 = load i32, i32* %7, align 4
-  %31 = call zeroext i8 @_Z13unpack_4ui8_gj(i32 %30)
-  %32 = load i32, i32* %7, align 4
-  %33 = call zeroext i8 @_Z13unpack_4ui8_bj(i32 %32)
-  %34 = load i32, i32* %7, align 4
-  %35 = call zeroext i8 @_Z13unpack_4ui8_aj(i32 %34)
-  call void @put_pixel(i32 %25, i32 %27, i8 zeroext %29, i8 zeroext %31, i8 zeroext %33, i8 zeroext %35)
-  br label %36
+20:                                               ; preds = %17
+  %21 = load i64, i64* %6, align 8
+  %22 = load i64, i64* %5, align 8
+  %23 = load i64, i64* %4, align 8
+  %24 = call i32 @shader_1(i64 %21, i64 %22, i64 1024, i64 576, i64 %23)
+  store i32 %24, i32* %7, align 4
+  %25 = load i64, i64* %6, align 8
+  %26 = trunc i64 %25 to i32
+  %27 = load i64, i64* %5, align 8
+  %28 = trunc i64 %27 to i32
+  %29 = load i32, i32* %7, align 4
+  call void @put_pixel(i32 %26, i32 %28, i32 %29)
+  br label %30
 
-36:                                               ; preds = %19
-  %37 = load i64, i64* %6, align 8
-  %38 = add nsw i64 %37, 1
-  store i64 %38, i64* %6, align 8
-  br label %16
+30:                                               ; preds = %20
+  %31 = load i64, i64* %6, align 8
+  %32 = add nsw i64 %31, 1
+  store i64 %32, i64* %6, align 8
+  br label %17
 
-39:                                               ; preds = %16
-  br label %40
+33:                                               ; preds = %17
+  br label %34
 
-40:                                               ; preds = %39
-  %41 = load i64, i64* %5, align 8
-  %42 = add nsw i64 %41, 1
-  store i64 %42, i64* %5, align 8
-  br label %12
+34:                                               ; preds = %33
+  %35 = load i64, i64* %5, align 8
+  %36 = add nsw i64 %35, 1
+  store i64 %36, i64* %5, align 8
+  br label %13
 
-43:                                               ; preds = %12
-  call void @flush()
+37:                                               ; preds = %13
+  call void (...) @flush()
   br label %8
 
-44:                                               ; preds = %8
+38:                                               ; preds = %8
   ret i32 0
 }
 
-declare dso_local void @_Z12sEngine_initjj(i32, i32) #1
+declare dso_local void @sEngine_init(i32, i32)
 
-declare dso_local zeroext i1 @_Z20sEngine_windowIsOpenv() #1
+declare dso_local i32 @sEngine_windowIsOpen(...) 
 
-declare dso_local i64 @get_time_milliseconds() #1
+declare dso_local i64 @get_time_milliseconds(...)
 
-; Function Attrs: noinline optnone uwtable
-define dso_local i32 @_Z8shader_1lllll(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4) #2 {
+define dso_local i32 @shader_1(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4)  {
   %6 = alloca i64, align 8
   %7 = alloca i64, align 8
   %8 = alloca i64, align 8
@@ -110,210 +96,162 @@ define dso_local i32 @_Z8shader_1lllll(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4) #
   %17 = alloca i64, align 8
   %18 = alloca i64, align 8
   %19 = alloca i64, align 8
-  %20 = alloca i8, align 1
-  %21 = alloca i32, align 4
-  %22 = alloca i64, align 8
-  %23 = alloca i32, align 4
+  %20 = alloca i32, align 4
+  %21 = alloca i64, align 8
   store i64 %0, i64* %6, align 8
   store i64 %1, i64* %7, align 8
   store i64 %2, i64* %8, align 8
   store i64 %3, i64* %9, align 8
   store i64 %4, i64* %10, align 8
   store i32 255, i32* %11, align 4
-  %24 = load i64, i64* %6, align 8
-  %25 = mul nsw i64 %24, 1000
-  %26 = load i64, i64* %8, align 8
-  %27 = sdiv i64 %25, %26
-  store i64 %27, i64* %12, align 8
-  %28 = load i64, i64* %7, align 8
-  %29 = mul nsw i64 %28, 1000
-  %30 = load i64, i64* %9, align 8
-  %31 = sdiv i64 %29, %30
-  store i64 %31, i64* %13, align 8
-  %32 = load i64, i64* %10, align 8
-  %33 = sdiv i64 %32, 2
-  store i64 %33, i64* %10, align 8
+  %22 = load i64, i64* %6, align 8
+  %23 = mul nsw i64 %22, 1000
+  %24 = load i64, i64* %8, align 8
+  %25 = sdiv i64 %23, %24
+  store i64 %25, i64* %12, align 8
+  %26 = load i64, i64* %7, align 8
+  %27 = mul nsw i64 %26, 1000
+  %28 = load i64, i64* %9, align 8
+  %29 = sdiv i64 %27, %28
+  store i64 %29, i64* %13, align 8
+  %30 = load i64, i64* %10, align 8
+  %31 = sdiv i64 %30, 2
+  store i64 %31, i64* %10, align 8
   store i32 75, i32* %14, align 4
-  %34 = load i64, i64* %10, align 8
-  %35 = sdiv i64 %34, 3
-  %36 = sub nsw i64 %35, 2000
-  %37 = call i64 @_Z7int_cosl(i64 %36)
-  %38 = sdiv i64 %37, 5
-  %39 = add nsw i64 %38, 850
-  %40 = mul nsw i64 788, %39
-  %41 = sdiv i64 %40, 1000
-  store i64 %41, i64* %15, align 8
-  %42 = load i64, i64* %15, align 8
-  %43 = load i64, i64* %10, align 8
-  %44 = sdiv i64 %43, 3
-  %45 = call i64 @_Z7int_cosl(i64 %44)
-  %46 = mul nsw i64 %42, %45
-  %47 = sdiv i64 %46, 1000
-  store i64 %47, i64* %16, align 8
-  %48 = load i64, i64* %15, align 8
-  %49 = load i64, i64* %10, align 8
-  %50 = sdiv i64 %49, 3
-  %51 = add nsw i64 %50, 3000
-  %52 = call i64 @_Z7int_cosl(i64 %51)
-  %53 = mul nsw i64 %48, %52
-  %54 = sdiv i64 %53, 1000
-  store i64 %54, i64* %17, align 8
-  %55 = load i64, i64* %12, align 8
-  %56 = sub nsw i64 %55, 500
-  %57 = mul nsw i64 3, %56
-  store i64 %57, i64* %18, align 8
-  %58 = load i64, i64* %13, align 8
-  %59 = sub nsw i64 %58, 500
-  %60 = mul nsw i64 2, %59
-  store i64 %60, i64* %19, align 8
-  store i8 0, i8* %20, align 1
-  store i32 0, i32* %21, align 4
-  br label %61
+  %32 = load i64, i64* %10, align 8
+  %33 = sdiv i64 %32, 3
+  %34 = sub nsw i64 %33, 2000
+  %35 = call i64 @int_cos(i64 %34)
+  %36 = sdiv i64 %35, 5
+  %37 = add nsw i64 %36, 850
+  %38 = mul nsw i64 788, %37
+  %39 = sdiv i64 %38, 1000
+  store i64 %39, i64* %15, align 8
+  %40 = load i64, i64* %15, align 8
+  %41 = load i64, i64* %10, align 8
+  %42 = sdiv i64 %41, 3
+  %43 = call i64 @int_cos(i64 %42)
+  %44 = mul nsw i64 %40, %43
+  %45 = sdiv i64 %44, 1000
+  store i64 %45, i64* %16, align 8
+  %46 = load i64, i64* %15, align 8
+  %47 = load i64, i64* %10, align 8
+  %48 = sdiv i64 %47, 3
+  %49 = add nsw i64 %48, 3000
+  %50 = call i64 @int_cos(i64 %49)
+  %51 = mul nsw i64 %46, %50
+  %52 = sdiv i64 %51, 1000
+  store i64 %52, i64* %17, align 8
+  %53 = load i64, i64* %12, align 8
+  %54 = sub nsw i64 %53, 500
+  %55 = mul nsw i64 3, %54
+  store i64 %55, i64* %18, align 8
+  %56 = load i64, i64* %13, align 8
+  %57 = sub nsw i64 %56, 500
+  %58 = mul nsw i64 2, %57
+  store i64 %58, i64* %19, align 8
+  store i32 0, i32* %20, align 4
+  store i32 0, i32* %20, align 4
+  br label %59
 
-61:                                               ; preds = %98, %5
-  %62 = load i32, i32* %21, align 4
-  %63 = load i32, i32* %14, align 4
-  %64 = icmp ult i32 %62, %63
-  br i1 %64, label %65, label %101
+59:                                               ; preds = %96, %5
+  %60 = load i32, i32* %20, align 4
+  %61 = load i32, i32* %14, align 4
+  %62 = icmp ult i32 %60, %61
+  br i1 %62, label %63, label %99
 
-65:                                               ; preds = %61
-  %66 = load i64, i64* %18, align 8
-  %67 = load i64, i64* %18, align 8
-  %68 = mul nsw i64 %66, %67
-  %69 = load i64, i64* %19, align 8
-  %70 = load i64, i64* %19, align 8
-  %71 = mul nsw i64 %69, %70
-  %72 = sub nsw i64 %68, %71
-  %73 = sdiv i64 %72, 1000
-  %74 = load i64, i64* %16, align 8
-  %75 = add nsw i64 %73, %74
-  store i64 %75, i64* %22, align 8
-  %76 = load i64, i64* %19, align 8
+63:                                               ; preds = %59
+  %64 = load i64, i64* %18, align 8
+  %65 = load i64, i64* %18, align 8
+  %66 = mul nsw i64 %64, %65
+  %67 = load i64, i64* %19, align 8
+  %68 = load i64, i64* %19, align 8
+  %69 = mul nsw i64 %67, %68
+  %70 = sub nsw i64 %66, %69
+  %71 = sdiv i64 %70, 1000
+  %72 = load i64, i64* %16, align 8
+  %73 = add nsw i64 %71, %72
+  store i64 %73, i64* %21, align 8
+  %74 = load i64, i64* %19, align 8
+  %75 = load i64, i64* %18, align 8
+  %76 = mul nsw i64 %74, %75
   %77 = load i64, i64* %18, align 8
-  %78 = mul nsw i64 %76, %77
-  %79 = load i64, i64* %18, align 8
-  %80 = load i64, i64* %19, align 8
-  %81 = mul nsw i64 %79, %80
-  %82 = add nsw i64 %78, %81
-  %83 = sdiv i64 %82, 1000
-  %84 = load i64, i64* %17, align 8
-  %85 = add nsw i64 %83, %84
-  store i64 %85, i64* %19, align 8
-  %86 = load i64, i64* %22, align 8
-  store i64 %86, i64* %18, align 8
-  %87 = load i64, i64* %18, align 8
-  %88 = load i64, i64* %18, align 8
-  %89 = mul nsw i64 %87, %88
-  %90 = load i64, i64* %19, align 8
-  %91 = load i64, i64* %19, align 8
-  %92 = mul nsw i64 %90, %91
-  %93 = add nsw i64 %89, %92
-  %94 = sdiv i64 %93, 10000
-  %95 = icmp sgt i64 %94, 4000
-  br i1 %95, label %96, label %97
+  %78 = load i64, i64* %19, align 8
+  %79 = mul nsw i64 %77, %78
+  %80 = add nsw i64 %76, %79
+  %81 = sdiv i64 %80, 1000
+  %82 = load i64, i64* %17, align 8
+  %83 = add nsw i64 %81, %82
+  store i64 %83, i64* %19, align 8
+  %84 = load i64, i64* %21, align 8
+  store i64 %84, i64* %18, align 8
+  %85 = load i64, i64* %18, align 8
+  %86 = load i64, i64* %18, align 8
+  %87 = mul nsw i64 %85, %86
+  %88 = load i64, i64* %19, align 8
+  %89 = load i64, i64* %19, align 8
+  %90 = mul nsw i64 %88, %89
+  %91 = add nsw i64 %87, %90
+  %92 = sdiv i64 %91, 10000
+  %93 = icmp sgt i64 %92, 4000
+  br i1 %93, label %94, label %95
 
-96:                                               ; preds = %65
-  store i8 1, i8* %20, align 1
-  br label %101
+94:                                               ; preds = %63
+  br label %99
 
-97:                                               ; preds = %65
-  br label %98
+95:                                               ; preds = %63
+  br label %96
 
-98:                                               ; preds = %97
-  %99 = load i32, i32* %21, align 4
-  %100 = add i32 %99, 1
-  store i32 %100, i32* %21, align 4
-  br label %61
+96:                                               ; preds = %95
+  %97 = load i32, i32* %20, align 4
+  %98 = add i32 %97, 1
+  store i32 %98, i32* %20, align 4
+  br label %59
 
-101:                                              ; preds = %96, %61
-  %102 = load i32, i32* %21, align 4
-  %103 = mul i32 %102, 1000
-  %104 = load i32, i32* %14, align 4
-  %105 = udiv i32 %103, %104
-  %106 = zext i32 %105 to i64
-  %107 = load i64, i64* %10, align 8
-  %108 = add nsw i64 %107, 3000
-  %109 = call i64 @_Z7int_cosl(i64 %108)
-  %110 = mul nsw i64 %109, 2
-  %111 = sdiv i64 %110, 5
-  %112 = add nsw i64 300, %111
-  %113 = load i64, i64* %10, align 8
-  %114 = add nsw i64 %113, 3600
-  %115 = call i64 @_Z7int_cosl(i64 %114)
-  %116 = mul nsw i64 %115, 3
-  %117 = sdiv i64 %116, 10
-  %118 = add nsw i64 200, %117
-  %119 = load i64, i64* %10, align 8
-  %120 = add nsw i64 %119, 4400
-  %121 = call i64 @_Z7int_cosl(i64 %120)
-  %122 = mul nsw i64 %121, 3
-  %123 = sdiv i64 %122, 10
-  %124 = add nsw i64 200, %123
-  %125 = call i32 @_Z11palette_intllll(i64 %106, i64 %112, i64 %118, i64 %124)
-  store i32 %125, i32* %23, align 4
-  %126 = load i8, i8* %20, align 1
-  %127 = trunc i8 %126 to i1
-  br i1 %127, label %128, label %130
+99:                                               ; preds = %94, %59
+  %100 = load i32, i32* %20, align 4
+  %101 = load i32, i32* %14, align 4
+  %102 = icmp ne i32 %100, %101
+  br i1 %102, label %103, label %128
 
-128:                                              ; preds = %101
-  %129 = load i32, i32* %23, align 4
-  store i32 %129, i32* %11, align 4
-  br label %130
+103:                                              ; preds = %99
+  %104 = load i32, i32* %20, align 4
+  %105 = mul i32 %104, 1000
+  %106 = load i32, i32* %14, align 4
+  %107 = udiv i32 %105, %106
+  %108 = zext i32 %107 to i64
+  %109 = load i64, i64* %10, align 8
+  %110 = add nsw i64 %109, 3000
+  %111 = call i64 @int_cos(i64 %110)
+  %112 = mul nsw i64 %111, 2
+  %113 = sdiv i64 %112, 5
+  %114 = add nsw i64 300, %113
+  %115 = load i64, i64* %10, align 8
+  %116 = add nsw i64 %115, 3600
+  %117 = call i64 @int_cos(i64 %116)
+  %118 = mul nsw i64 %117, 3
+  %119 = sdiv i64 %118, 10
+  %120 = add nsw i64 200, %119
+  %121 = load i64, i64* %10, align 8
+  %122 = add nsw i64 %121, 4400
+  %123 = call i64 @int_cos(i64 %122)
+  %124 = mul nsw i64 %123, 3
+  %125 = sdiv i64 %124, 10
+  %126 = add nsw i64 200, %125
+  %127 = call i32 @palette_int(i64 %108, i64 %114, i64 %120, i64 %126)
+  store i32 %127, i32* %11, align 4
+  br label %128
 
-130:                                              ; preds = %128, %101
-  %131 = load i32, i32* %11, align 4
-  ret i32 %131
+128:                                              ; preds = %103, %99
+  %129 = load i32, i32* %11, align 4
+  ret i32 %129
 }
 
-declare dso_local void @put_pixel(i32, i32, i8 zeroext, i8 zeroext, i8 zeroext, i8 zeroext) #1
+declare dso_local void @put_pixel(i32, i32, i32) #1
 
-; Function Attrs: noinline nounwind optnone uwtable
-define dso_local zeroext i8 @_Z13unpack_4ui8_rj(i32 %0) #3 {
-  %2 = alloca i32, align 4
-  store i32 %0, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  %4 = and i32 %3, -16777216
-  %5 = lshr i32 %4, 24
-  %6 = trunc i32 %5 to i8
-  ret i8 %6
-}
+declare dso_local void @flush(...) #1
 
-; Function Attrs: noinline nounwind optnone uwtable
-define dso_local zeroext i8 @_Z13unpack_4ui8_gj(i32 %0) #3 {
-  %2 = alloca i32, align 4
-  store i32 %0, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  %4 = and i32 %3, 16711680
-  %5 = lshr i32 %4, 16
-  %6 = trunc i32 %5 to i8
-  ret i8 %6
-}
-
-; Function Attrs: noinline nounwind optnone uwtable
-define dso_local zeroext i8 @_Z13unpack_4ui8_bj(i32 %0) #3 {
-  %2 = alloca i32, align 4
-  store i32 %0, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  %4 = and i32 %3, 65280
-  %5 = lshr i32 %4, 8
-  %6 = trunc i32 %5 to i8
-  ret i8 %6
-}
-
-; Function Attrs: noinline nounwind optnone uwtable
-define dso_local zeroext i8 @_Z13unpack_4ui8_aj(i32 %0) #3 {
-  %2 = alloca i32, align 4
-  store i32 %0, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  %4 = and i32 %3, 255
-  %5 = trunc i32 %4 to i8
-  ret i8 %5
-}
-
-declare dso_local void @flush() #1
-
-; Function Attrs: noinline nounwind optnone uwtable
-define dso_local i32 @_Z17pack_4ui8_to_ui32hhhh(i8 zeroext %0, i8 zeroext %1, i8 zeroext %2, i8 zeroext %3) #3 {
+define dso_local i32 @pack_4ui8_to_ui32(i8 zeroext %0, i8 zeroext %1, i8 zeroext %2, i8 zeroext %3)  {
   %5 = alloca i8, align 1
   %6 = alloca i8, align 1
   %7 = alloca i8, align 1
@@ -351,8 +289,25 @@ define dso_local i32 @_Z17pack_4ui8_to_ui32hhhh(i8 zeroext %0, i8 zeroext %1, i8
   ret i32 %29
 }
 
-; Function Attrs: noinline optnone uwtable
-define dso_local i64 @_Z7int_cosl(i64 %0) #2 {
+define dso_local i64 @abs_dummy(i64 %0)  {
+  %2 = alloca i64, align 8
+  store i64 %0, i64* %2, align 8
+  %3 = load i64, i64* %2, align 8
+  %4 = icmp slt i64 %3, 0
+  br i1 %4, label %5, label %8
+
+5:                                                ; preds = %1
+  %6 = load i64, i64* %2, align 8
+  %7 = sub nsw i64 0, %6
+  store i64 %7, i64* %2, align 8
+  br label %8
+
+8:                                                ; preds = %5, %1
+  %9 = load i64, i64* %2, align 8
+  ret i64 %9
+}
+
+define dso_local i64 @int_cos(i64 %0)  {
   %2 = alloca i64, align 8
   %3 = alloca i64, align 8
   %4 = alloca i64, align 8
@@ -363,66 +318,50 @@ define dso_local i64 @_Z7int_cosl(i64 %0) #2 {
   %8 = srem i64 %7, 1000
   store i64 %8, i64* %3, align 8
   %9 = load i64, i64* %2, align 8
-  %10 = call i64 @_ZSt3absl(i64 %9)
+  %10 = call i64 @abs_dummy(i64 %9)
   %11 = srem i64 %10, 4000
   %12 = sdiv i64 %11, 1000
   store i64 %12, i64* %4, align 8
   %13 = load i64, i64* %4, align 8
-  %14 = icmp eq i64 %13, 1
-  br i1 %14, label %18, label %15
+  %14 = srem i64 %13, 2
+  %15 = icmp ne i64 %14, 0
+  br i1 %15, label %16, label %19
 
-15:                                               ; preds = %1
-  %16 = load i64, i64* %4, align 8
-  %17 = icmp eq i64 %16, 3
-  br i1 %17, label %18, label %21
+16:                                               ; preds = %1
+  %17 = load i64, i64* %3, align 8
+  %18 = sub nsw i64 1000, %17
+  store i64 %18, i64* %3, align 8
+  br label %19
 
-18:                                               ; preds = %15, %1
-  %19 = load i64, i64* %3, align 8
-  %20 = sub nsw i64 1000, %19
-  store i64 %20, i64* %3, align 8
-  br label %21
+19:                                               ; preds = %16, %1
+  %20 = load i64, i64* %4, align 8
+  %21 = icmp eq i64 %20, 1
+  br i1 %21, label %25, label %22
 
-21:                                               ; preds = %18, %15
-  %22 = load i64, i64* %4, align 8
-  %23 = icmp eq i64 %22, 1
-  br i1 %23, label %27, label %24
+22:                                               ; preds = %19
+  %23 = load i64, i64* %4, align 8
+  %24 = icmp eq i64 %23, 2
+  br label %25
 
-24:                                               ; preds = %21
-  %25 = load i64, i64* %4, align 8
-  %26 = icmp eq i64 %25, 2
-  br label %27
-
-27:                                               ; preds = %24, %21
-  %28 = phi i1 [ true, %21 ], [ %26, %24 ]
-  %29 = zext i1 %28 to i64
-  %30 = select i1 %28, i32 1, i32 -1
-  %31 = sext i32 %30 to i64
-  store i64 %31, i64* %5, align 8
-  %32 = load i64, i64* %3, align 8
-  %33 = load i64, i64* %3, align 8
-  %34 = mul nsw i64 %32, %33
-  %35 = sdiv i64 %34, 1000
-  %36 = sub nsw i64 %35, 1000
-  store i64 %36, i64* %6, align 8
-  %37 = load i64, i64* %6, align 8
-  %38 = load i64, i64* %5, align 8
-  %39 = mul nsw i64 %37, %38
-  ret i64 %39
+25:                                               ; preds = %22, %19
+  %26 = phi i1 [ true, %19 ], [ %24, %22 ]
+  %27 = zext i1 %26 to i64
+  %28 = select i1 %26, i32 1, i32 -1
+  %29 = sext i32 %28 to i64
+  store i64 %29, i64* %5, align 8
+  %30 = load i64, i64* %3, align 8
+  %31 = load i64, i64* %3, align 8
+  %32 = mul nsw i64 %30, %31
+  %33 = sdiv i64 %32, 1000
+  %34 = sub nsw i64 %33, 1000
+  store i64 %34, i64* %6, align 8
+  %35 = load i64, i64* %6, align 8
+  %36 = load i64, i64* %5, align 8
+  %37 = mul nsw i64 %35, %36
+  ret i64 %37
 }
 
-; Function Attrs: noinline nounwind optnone uwtable
-define linkonce_odr dso_local i64 @_ZSt3absl(i64 %0) #3 comdat {
-  %2 = alloca i64, align 8
-  store i64 %0, i64* %2, align 8
-  %3 = load i64, i64* %2, align 8
-  %4 = sub nsw i64 0, %3
-  %5 = icmp slt i64 %3, 0
-  %6 = select i1 %5, i64 %4, i64 %3
-  ret i64 %6
-}
-
-; Function Attrs: noinline optnone uwtable
-define dso_local i32 @_Z11palette_intllll(i64 %0, i64 %1, i64 %2, i64 %3) #2 {
+define dso_local i32 @palette_int(i64 %0, i64 %1, i64 %2, i64 %3)  {
   %5 = alloca i64, align 8
   %6 = alloca i64, align 8
   %7 = alloca i64, align 8
@@ -441,7 +380,7 @@ define dso_local i32 @_Z11palette_intllll(i64 %0, i64 %1, i64 %2, i64 %3) #2 {
   %16 = add nsw i64 %14, %15
   %17 = mul nsw i64 628318, %16
   %18 = sdiv i64 %17, 100000
-  %19 = call i64 @_Z7int_cosl(i64 %18)
+  %19 = call i64 @int_cos(i64 %18)
   %20 = mul nsw i64 500, %19
   %21 = sdiv i64 %20, 1000
   %22 = add nsw i64 500, %21
@@ -455,7 +394,7 @@ define dso_local i32 @_Z11palette_intllll(i64 %0, i64 %1, i64 %2, i64 %3) #2 {
   %29 = add nsw i64 %27, %28
   %30 = mul nsw i64 628318, %29
   %31 = sdiv i64 %30, 100000
-  %32 = call i64 @_Z7int_cosl(i64 %31)
+  %32 = call i64 @int_cos(i64 %31)
   %33 = mul nsw i64 500, %32
   %34 = sdiv i64 %33, 1000
   %35 = add nsw i64 500, %34
@@ -469,7 +408,7 @@ define dso_local i32 @_Z11palette_intllll(i64 %0, i64 %1, i64 %2, i64 %3) #2 {
   %42 = add nsw i64 %40, %41
   %43 = mul nsw i64 628318, %42
   %44 = sdiv i64 %43, 100000
-  %45 = call i64 @_Z7int_cosl(i64 %44)
+  %45 = call i64 @int_cos(i64 %44)
   %46 = mul nsw i64 500, %45
   %47 = sdiv i64 %46, 1000
   %48 = add nsw i64 500, %47
@@ -482,17 +421,6 @@ define dso_local i32 @_Z11palette_intllll(i64 %0, i64 %1, i64 %2, i64 %3) #2 {
   %54 = load i64, i64* %5, align 8
   %55 = sdiv i64 %54, 4
   %56 = trunc i64 %55 to i8
-  %57 = call i32 @_Z17pack_4ui8_to_ui32hhhh(i8 zeroext %51, i8 zeroext %52, i8 zeroext %53, i8 zeroext %56)
+  %57 = call i32 @pack_4ui8_to_ui32(i8 zeroext %51, i8 zeroext %52, i8 zeroext %53, i8 zeroext %56)
   ret i32 %57
 }
-
-attributes #0 = { noinline norecurse optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { noinline optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-
-!llvm.module.flags = !{!0}
-!llvm.ident = !{!1}
-
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{!"clang version 10.0.0-4ubuntu1 "}

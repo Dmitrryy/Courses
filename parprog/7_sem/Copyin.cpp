@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 {
     #pragma omp threadprivate(tol)
 
-    int nthreads;//, tid;
+    int nthreads, tid;
 
     tol = 10.0;
     #pragma omp parallel
