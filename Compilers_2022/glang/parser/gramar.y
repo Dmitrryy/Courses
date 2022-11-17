@@ -20,7 +20,6 @@
 
     #include "llvm/IR/Module.h"
 
-	// forward declaration of argument to parser
 	namespace yy { class Driver; }
 }
 

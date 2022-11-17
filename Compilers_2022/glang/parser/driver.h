@@ -49,7 +49,6 @@ namespace yy
 
         ~Driver()
         {
-
             delete m_lexer;
             delete module;
         }
