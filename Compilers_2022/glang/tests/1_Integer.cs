@@ -16,6 +16,7 @@ class Program {
         a.Minus().Print();
         a.Mult(b).Print();
         a.Div(2).Print();
+        a.SRem(3).Print();
     }
 
     method cmptest(lhs : Integer, rhs : Integer) {
@@ -31,8 +32,7 @@ class Program {
     }
 
     method Program() {
-        this.Get().Print();
         this.arifmet();
-        this.cmptest(10, 10);
+        //this.cmptest(10, 10);
     }
 }

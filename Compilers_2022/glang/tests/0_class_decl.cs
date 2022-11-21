@@ -47,7 +47,10 @@ class Program {
         m_int.Print();
 
         // We can build chain of expressions due to Set1 return object
-        m_int2.Set1(99).Print();
+        m_int2.Set1(99).Set2(100).Print();
+        // Second value not initialized due to 
+        // all methods return object by copy
+        m_int2.Print();
         {
             loc : Integer;
             loc.Set(88);
