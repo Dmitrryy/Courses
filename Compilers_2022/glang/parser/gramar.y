@@ -36,7 +36,7 @@
     #include <set>
     #include <map>
 
-    #include "../Compiler/VarTable.h"
+    #include "../Compiler/builder.hpp"
 
 	namespace yy {
 
@@ -52,9 +52,8 @@
     std::unordered_map< std::string, std::pair<size_t, std::string> > g_structFields;
 
     llvm::Value *g_this = nullptr;
-    size_t g_fieldCounter = 0;
-    llvm::StructType *g_curStruct_Ty = nullptr;
 
+    // Implements the logic of visibility of variables in a certain scope
     struct idInfo {
         llvm::Value *value = {};
         llvm::StructType *type = {};
@@ -64,7 +63,11 @@
     };
     ezg::ScopeTable< std::string, idInfo > g_nameTable;
 
+    // Problem: when a falseBB is created before opening an scope, 
+    // but it must be put in the IRBuilder.SetInsertPoint after the if-scope, 
+    // we need to save this BB
     std::stack< llvm::BasicBlock * > ifFalseBBs;
+    // Same problem as with if
     std::stack< llvm::BasicBlock * > whileCondBBs;
     std::stack< llvm::BasicBlock * > whileFalseBBs;
 }
@@ -81,6 +84,13 @@
   RPARENTHESES		")"
   LBRACE        	"{"
   RBRACE        	"}"
+  BIT_SHIFT_LEFT        "<<"
+  BIT_SHIFT_RIGHT       ">>"
+  BIT_AND           "&"
+  BIT_OR            "|"
+  BIT_XOR           "^"
+  BIT_NOT           "~"
+  PERSENT           "%"
   GREATER       	">"
   LESS          	"<"
   LLESS			"<="
@@ -88,14 +98,15 @@
   EQUAL         	"=="
   NONEQUAL      	"!="
   ASSIGN        	"="
-  //QMARK         	"?(scanf)"
   KW_WHILE		"while"
   KW_IF			"if"
   KW_RETURN     "return"
   KW_CLASS      "class"
   KW_THIS       "this"
   KW_METHOD     "method"
+  KW_BREAK      "break"
   DOT           "."
+  HEX_INTEGER_LITERAL "hex number"
   ERROR
 ;
 
@@ -113,7 +124,14 @@
 
 // pair<llvm_val, type_name>
 %nterm < std::pair<llvm::Value *, std::string> > variable_access
-%nterm < std::pair<llvm::Value *, std::string> > expression
+//%nterm < std::pair<llvm::Value *, std::string> > expression
+%nterm < std::pair<llvm::Value *, std::string> > exprLvl0
+%nterm < std::pair<llvm::Value *, std::string> > exprLvl1
+%nterm < std::pair<llvm::Value *, std::string> > exprLvl2
+%nterm < std::pair<llvm::Value *, std::string> > exprLvl3
+%nterm < std::pair<llvm::Value *, std::string> > exprLvl4
+%nterm < std::pair<llvm::Value *, std::string> > exprLvl5
+
 %nterm < std::vector<std::pair<llvm::Value *, std::string>> > ne_arguments
 %nterm < std::vector<std::pair<llvm::Value *, std::string>> > arguments
 
@@ -143,10 +161,9 @@ class_declaration
 : KW_CLASS IDENTIFIER 
 {   
     g_curClassName = $2;
-    std::cout << @2 << ": class declaration: " << $2 << std::endl;
+    //std::cout << @2 << ": class declaration: " << $2 << std::endl;
 } LBRACE class_members RBRACE {
      g_structFields.clear();
-     g_fieldCounter = 0;
 }
 ;
 
@@ -155,8 +172,7 @@ class_declaration
 class_members
 : class_variables {
     // firstly define struct type.
-    g_curStruct_Ty = llvm::StructType::create(driver->context, $1, 
-    ezg::mangl_class_name(g_curClassName));
+    llvm::StructType::create(driver->context, $1, ezg::mangl_class_name(g_curClassName));
 }   // than we can use struct type in methods
 class_methods { }
 ;
@@ -175,9 +191,9 @@ class_variables
 
 class_field_declaration
 : IDENTIFIER COLON type SCOLON {
-    g_structFields[$1] = std::make_pair(g_fieldCounter++, $3->getName());
+    g_structFields[$1] = std::make_pair(g_structFields.size(), $3->getName());
     $$ = $3;
-    std::cout << "Class field declaration: " << $1 << std::endl; 
+    //std::cout << "Class field declaration: " << $1 << std::endl; 
 }
 ;
 
@@ -337,7 +353,7 @@ parameter_declaration
 scope_body
 : /* empty */ {} 
 | scope_body variable_declaration {}
-| scope_body expression SCOLON {} 
+| scope_body exprLvl0 SCOLON {} 
 | scope_body statement { }
 | scope_body {
     // create csope
@@ -362,14 +378,12 @@ variable_declaration
         .to_load = false
     };
     g_nameTable.declare(g_nameTable.getCurTableId(), $1, info);
-
-    std::cout << "Var declaration: " << $1 << std::endl; 
 }
 ;
 
 
 statement
-: assignment {assert(0 && "not implemented");}
+: assignment {}
 | {
     // create condition BB
     //=-------------------
@@ -381,16 +395,36 @@ statement
 } while_loop {}
 | if_statement {}
 | return_statement {}
+| break_statement {}
 ;
 
-//TODO
+
+break_statement
+: KW_BREAK SCOLON {
+    // jump to false BB of the while loop
+    g_builder->CreateBr(whileFalseBBs.top());
+}
+;
+
+
 assignment
-: IDENTIFIER ASSIGN expression SCOLON {}
+: variable_access ASSIGN exprLvl0 SCOLON {
+    // Call $1.Set
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Set", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Set' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+}
 ;
 
 
 while_loop
-: KW_WHILE LPARENTHESES expression RPARENTHESES {
+: KW_WHILE LPARENTHESES exprLvl0 RPARENTHESES {
     // create csope
     //=------------
     size_t table_id = g_nameTable.createTable(g_nameTable.getCurTableId());
@@ -422,8 +456,9 @@ while_loop
     // close scope
     //=-----------
     g_nameTable.exitCurScope();
-
-    g_builder->CreateBr(whileCondBBs.top());
+    if(!(g_builder->GetInsertBlock()->getTerminator())) {
+        g_builder->CreateBr(whileCondBBs.top());
+    }
     whileCondBBs.pop();
 
     g_builder->SetInsertPoint(whileFalseBBs.top());
@@ -433,7 +468,7 @@ while_loop
 
 //TODO else
 if_statement
-: KW_IF LPARENTHESES expression RPARENTHESES {
+: KW_IF LPARENTHESES exprLvl0 RPARENTHESES {
     // create csope
     //=------------
     size_t table_id = g_nameTable.createTable(g_nameTable.getCurTableId());
@@ -465,30 +500,446 @@ if_statement
     // close scope
     //=-----------
     g_nameTable.exitCurScope();
-    
-    g_builder->CreateBr(ifFalseBBs.top());
+    if(!(g_builder->GetInsertBlock()->getTerminator())) {
+        g_builder->CreateBr(ifFalseBBs.top());
+    }
     g_builder->SetInsertPoint(ifFalseBBs.top());
     ifFalseBBs.pop();
 }
 ;
 
 return_statement
-: KW_RETURN expression SCOLON {
+: KW_RETURN exprLvl0 SCOLON {
     auto&& struct_type = llvm::StructType::getTypeByName(driver->context, ezg::mangl_class_name($2.second));
     auto&& load = g_builder->CreateLoad(struct_type, $2.first);
     g_builder->CreateRet(load);
 }
 ;
 
-expression
-: variable_access { $$ = $1; }
-| INTEGER_LITERAL {
-    auto&& cur_func = g_builder->GetInsertBlock()->getParent();
-    $$ = std::make_pair(ezg::createIntegerByLiteral(cur_func, $1), std::string("Integer"));
+
+
+// Expresions
+// FIXME: mnogo copipasta
+//=------------------------------------------------
+exprLvl0
+: exprLvl1 { $$ = $1; }
+| exprLvl1 BIT_SHIFT_LEFT exprLvl0 {
+    // Call $1.Shl
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Shl", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Shl' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
 }
- // TODO construct variable
-| type LPARENTHESES arguments RPARENTHESES { assert(0 && "not implemented"); }
-| expression DOT IDENTIFIER LPARENTHESES arguments RPARENTHESES {
+| exprLvl1 BIT_SHIFT_RIGHT exprLvl0 {
+    // Call $1.AShr
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "AShr", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'AShr' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl1 BIT_AND exprLvl0 {
+    // Call $1.And
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "And", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'And' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl1 BIT_OR exprLvl0 {
+    // Call $1.Or
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Or", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Or' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl1 BIT_XOR exprLvl0 {
+    // Call $1.Xor
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Xor", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Xor' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+;
+
+exprLvl1
+: exprLvl2 { $$ = $1; }
+| exprLvl2 GREATER exprLvl1 {
+    // Call $1.Greater
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Greater", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Greater' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl2 LESS exprLvl1 {
+    // Call $1.Less
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Less", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Less' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl2 LLESS exprLvl1 {
+    // Call $1.LessEqual
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "LessEqual", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'LessEqual' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl2 LGREATER exprLvl1 {
+    // Call $1.GreaterEqual
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "GreaterEqual", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'GreaterEqual' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl2 EQUAL exprLvl1 {
+    // Call $1.Equal
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Equal", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Equal' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl2 NONEQUAL exprLvl1 {
+    // Call $1.NotEqual
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "NotEqual", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'NotEqual' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+; 
+
+exprLvl2
+: exprLvl3 { $$ = $1; }
+| exprLvl2 PLUS exprLvl3 {
+    // Call $1.Add
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Add", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Add' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl2 MINUS exprLvl3 {
+    // Call $1.Sub
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Sub", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Sub' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+;
+
+exprLvl3
+: exprLvl3 MUL exprLvl4 {
+    // Call $1.Mult
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Mult", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Mult' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl3 DIV exprLvl4 {
+    // Call $1.Div
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Div", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Div' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl3 PERSENT exprLvl4 {
+    // Call $1.SRem
+    const std::string class_name = $1.second;
+    const std::string arg_type = $3.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "SRem", {arg_type});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'SRem' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$1.first, $3.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl4 { $$ = $1; }
+;
+
+// unminus or unplus
+exprLvl4
+: MINUS exprLvl5 {
+    // Call $2.Minus
+    const std::string class_name = $2.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Minus", {});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Minus' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$2.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+//| PLUS exprLvl5 {assert(0 && "not implemented");}
+| BIT_NOT exprLvl5 {
+    // Call $2.Not
+    const std::string class_name = $2.second;
+    const std::string method_name = ezg::mangl_method_name(class_name, "Not", {});
+
+    auto&& callee = g_module->getFunction(method_name);
+    if(!callee) {
+        throw syntax_error(@2, "no method named 'Not' in '" + class_name +"'");
+    }
+    auto&& call = g_builder->CreateCall(callee, {$2.first});
+
+    // check if we should save result
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    $$ = {};
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        auto&& a = g_builder->CreateAlloca(ret_Ty);
+        g_builder->CreateStore(call, a);
+        $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
+    }
+}
+| exprLvl5 { $$ = $1; }
+;
+
+
+exprLvl5
+: exprLvl5 DOT IDENTIFIER LPARENTHESES arguments RPARENTHESES {
     auto&& class_name =  $1.second;
     std::vector< std::string > args_type;
     std::vector< llvm::Value* > args_val = {$1.first};
@@ -512,8 +963,16 @@ expression
         g_builder->CreateStore(a6, a);
         $$ = std::make_pair(a, ezg::demangl_class_name(ret_Ty->getName().str()));
     }
-  }
+}
+| LPARENTHESES exprLvl0 RPARENTHESES { $$ = $2; }
+| variable_access { $$ = $1; }
+| INTEGER_LITERAL {
+    auto&& cur_func = g_builder->GetInsertBlock()->getParent();
+    $$ = std::make_pair(ezg::createIntegerByLiteral(cur_func, $1), std::string("Integer"));
+}
 ;
+
+
 
 
 variable_access
@@ -559,14 +1018,14 @@ arguments
 
 
 ne_arguments
-: expression { $$.clear(); $$.push_back($1); }
-| ne_arguments COMMA expression { $1.push_back($3); $$ = $1; }
+: exprLvl0 { $$.clear(); $$.push_back($1); }
+| ne_arguments COMMA exprLvl0 { $1.push_back($3); $$ = $1; }
 ;
 
 
 type
 : IDENTIFIER { 
-    std::cout << "type ID: " << $1 << std::endl; 
+    //std::cout << "type ID: " << $1 << std::endl; 
     $$ = llvm::StructType::getTypeByName(driver->context, ezg::mangl_class_name($1));
     if (!$$) {
         throw syntax_error(@1, "undefined identifier '" + $1 + "'");

@@ -23,6 +23,9 @@ DIGIT           [0-9]
 DIGIT_NON_ZERO  [1-9]
 DOUBLE          {DIGIT}+{DOT}?{DIGIT}*
 INTEGER         {DIGIT_NON_ZERO}{DIGIT}*
+HEX_START       [0][xX]
+HEX_DIGIT       [0-9A-Fa-f]
+HEX_INTEGER     {HEX_START}{HEX_DIGIT}+
 LETTER          [a-zA-Z_]
 LETTER_OR_DIGIT [a-zA-Z0-9_]
 
@@ -43,6 +46,12 @@ COMMENT1        "//".*
 "if"                        return yy::parser::token_type::KW_IF;
 "return"                    return yy::parser::token_type::KW_RETURN;
 "method"                    return yy::parser::token_type::KW_METHOD;
+"break"                     return yy::parser::token_type::KW_BREAK;
+
+"=="                        return yy::parser::token_type::EQUAL;
+"!="                        return yy::parser::token_type::NONEQUAL;
+
+"%"                        return yy::parser::token_type::PERSENT;
 
 "="                         return yy::parser::token_type::ASSIGN;
 "+"                         return yy::parser::token_type::PLUS;
@@ -50,12 +59,19 @@ COMMENT1        "//".*
 "*"                         return yy::parser::token_type::MUL;
 "/"                         return yy::parser::token_type::DIV;
 
+"<<"                         return yy::parser::token_type::BIT_SHIFT_LEFT;
+">>"                         return yy::parser::token_type::BIT_SHIFT_RIGHT;
+"&"                         return yy::parser::token_type::BIT_AND;
+"|"                         return yy::parser::token_type::BIT_OR;
+"^"                         return yy::parser::token_type::BIT_XOR;
+"~"                         return yy::parser::token_type::BIT_NOT;
+
+
 ">"                         return yy::parser::token_type::GREATER;
 "<"                         return yy::parser::token_type::LESS;
 "<="                         return yy::parser::token_type::LLESS;
 ">="                         return yy::parser::token_type::LGREATER;
-"=="                        return yy::parser::token_type::EQUAL;
-"!="                        return yy::parser::token_type::NONEQUAL;
+
 
 ";"                         return yy::parser::token_type::SCOLON;
 ":"                         return yy::parser::token_type::COLON;
@@ -65,6 +81,7 @@ COMMENT1        "//".*
 "{"                         return yy::parser::token_type::LBRACE;
 "}"                         return yy::parser::token_type::RBRACE;
 
+{HEX_INTEGER}               return yy::parser::token_type::HEX_INTEGER_LITERAL;
 {INTEGER}                   return yy::parser::token_type::INTEGER_LITERAL;
 {DIGIT}                     return yy::parser::token_type::INTEGER_LITERAL;
 {IDENTIFIER}                return yy::parser::token_type::IDENTIFIER;

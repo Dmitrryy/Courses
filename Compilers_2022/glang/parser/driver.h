@@ -64,6 +64,13 @@ namespace yy
                 break;
             }
 
+            case yy::parser::token_type::HEX_INTEGER_LITERAL:
+            {
+                yylval->as<int64_t>() = std::stoll(m_lexer->YYText(), nullptr, 16);
+                tokenType = yy::parser::token_type::INTEGER_LITERAL;
+                break;
+            }
+
             case yy::parser::token_type::IDENTIFIER:
             {
                 std::string word(m_lexer->YYText());
