@@ -452,26 +452,241 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
 
     // Or(Integer) : Integer
     //=-----------
+    auto&& or_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& or_F = llvm::Function::Create(or_Ty, linkage, mangl_method_name(int_class_name, "Or", {orig_int_name}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", or_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(or_F->getArg(0), a3);
+        builder.CreateStore(or_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a8 = builder.CreateStructGEP(intTy, a7, 0);
+        auto&& b = builder.CreateLoad(builder.getInt64Ty(), a8);
+
+        auto&& c = builder.CreateOr(a, b);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
 
 
     // Xor(Integer) : Integer
     //=----------------------
+    auto&& xor_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& xor_F = llvm::Function::Create(xor_Ty, linkage, mangl_method_name(int_class_name, "Xor", {orig_int_name}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", xor_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(xor_F->getArg(0), a3);
+        builder.CreateStore(xor_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a8 = builder.CreateStructGEP(intTy, a7, 0);
+        auto&& b = builder.CreateLoad(builder.getInt64Ty(), a8);
+
+        auto&& c = builder.CreateXor(a, b);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
 
 
-    // Not(Integer) : Integer
+    // Not() : Integer
     //=----------------------
+    auto&& not_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo()}, false);
+    auto&& not_F = llvm::Function::Create(not_Ty, linkage, mangl_method_name(int_class_name, "Not", {}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", not_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(not_F->getArg(0), a3);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& c = builder.CreateNot(a);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
 
 
     // And(Integer) : Integer
     //=----------------------
+    auto&& and_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& and_F = llvm::Function::Create(or_Ty, linkage, mangl_method_name(int_class_name, "And", {orig_int_name}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", and_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(and_F->getArg(0), a3);
+        builder.CreateStore(and_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a8 = builder.CreateStructGEP(intTy, a7, 0);
+        auto&& b = builder.CreateLoad(builder.getInt64Ty(), a8);
+
+        auto&& c = builder.CreateAnd(a, b);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
 
 
     // Shl(Integer) : Integer
     //=----------------------
+    auto&& shl_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& shl_F = llvm::Function::Create(shl_Ty, linkage, mangl_method_name(int_class_name, "Shl", {orig_int_name}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", shl_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(shl_F->getArg(0), a3);
+        builder.CreateStore(shl_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a8 = builder.CreateStructGEP(intTy, a7, 0);
+        auto&& b = builder.CreateLoad(builder.getInt64Ty(), a8);
+
+        auto&& c = builder.CreateShl(a, b);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
 
 
-    // Ashr(Integer) : Integer
+    // AShr(Integer) : Integer
     //=-----------------------
+    auto&& ashr_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& ashr_F = llvm::Function::Create(ashr_Ty, linkage, mangl_method_name(int_class_name, "AShr", {orig_int_name}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", ashr_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(ashr_F->getArg(0), a3);
+        builder.CreateStore(ashr_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a8 = builder.CreateStructGEP(intTy, a7, 0);
+        auto&& b = builder.CreateLoad(builder.getInt64Ty(), a8);
+
+        auto&& c = builder.CreateAShr(a, b);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
+
+
+    // Srem(Integer) : Integer
+    //=-----------------------
+    auto&& srem_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& srem_F = llvm::Function::Create(srem_Ty, linkage, mangl_method_name(int_class_name, "SRem", {orig_int_name}), module);
+    le_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", srem_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(srem_F->getArg(0), a3);
+        builder.CreateStore(srem_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        auto&& a6 = builder.CreateStructGEP(intTy, a5, 0);
+        auto&& a = builder.CreateLoad(builder.getInt64Ty(), a6);
+
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a8 = builder.CreateStructGEP(intTy, a7, 0);
+        auto&& b = builder.CreateLoad(builder.getInt64Ty(), a8);
+
+        auto&& c = builder.CreateSRem(a, b);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        auto&& res_f = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(c, res_f);
+
+        auto&& lres = builder.CreateLoad(intTy, res);
+
+        builder.CreateRet(lres);
+    }
 
 
     //=-------------------------------------------------------------------------------
@@ -609,6 +824,28 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
         builder.CreateCall(put_pixelF, {x, y, rgba});
 
         builder.CreateRetVoid();
+    }
+
+    // GetTime() : Integer
+    //=-------------------
+    auto&& get_time_Ty = llvm::FunctionType::get(intTy, {grTy->getPointerTo()}, false);
+    auto&& get_time_F = llvm::Function::Create(get_time_Ty, linkage, mangl_method_name(graph_class_name, "GetTime", {}), module);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", get_time_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a = builder.CreateAlloca(grTy->getPointerTo());
+        auto&& res = builder.CreateAlloca(intTy);
+        builder.CreateStore(get_time_F->getArg(0), a);
+
+        auto&& ptr = builder.CreateStructGEP(intTy, res, 0);
+
+        auto&& call = builder.CreateCall(get_time_millisecondsF, {});
+        auto&& call_e = builder.CreateZExt(call, builder.getInt64Ty());
+
+        builder.CreateStore(call_e, ptr);
+
+        builder.CreateRet(builder.CreateLoad(intTy, res));
     }
 
     return nullptr;
