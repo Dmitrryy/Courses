@@ -27,6 +27,10 @@ set(1D_EXEX main_1d)
 add_executable(${1D_EXEX} main_1d.cpp)
 target_link_libraries(${1D_EXEX} PRIVATE OpenMP::OpenMP_CXX)
 
-set(REF_EXEX main_ref)
-add_executable(${REF_EXEX} main_ref.cpp)
+set(REF_EXEX main_omp_ref)
+add_executable(${REF_EXEX} main_ref_omp.cpp)
 target_link_libraries(${REF_EXEX} PRIVATE OpenMP::OpenMP_CXX)
+
+set(REF_MPI_EXEX main_mpi_ref)
+add_executable(${REF_MPI_EXEX} main_ref_mpi.cpp)
+target_link_libraries(${REF_MPI_EXEX} PRIVATE MPI::MPI_CXX)

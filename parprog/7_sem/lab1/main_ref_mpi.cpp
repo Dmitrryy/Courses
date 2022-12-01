@@ -6,11 +6,11 @@
 #include <vector>
 #include <array>
 
-
 const int JSIZE = 10000;
 const int ISIZE = 10000;
 const bool TEST_SEQ = true;
 
+const int DATA_FORWARDING = 1;
 
 int main(int argc, char **argv)
 {
@@ -37,40 +37,32 @@ int main(int argc, char **argv)
 
     double start_time = MPI_Wtime();
 
-    int start_col = rank * (JSIZE - 2) / comm_size;
-    int stop_col = (rank + 1) * (JSIZE - 2) / comm_size - 1;
+    int start_number = rank * JSIZE / comm_size;
+    int stop_number = (rank + 1) * JSIZE / comm_size - 1;
 
-    for (int line = 3; line < ISIZE; line++)
+    for (int line = start_number; line <= stop_number; line++)
     {
-        // get right border from next process
-        if (rank != comm_size - 1 and line > 5)
-            MPI_Recv(&(grid[line - 3][stop_col + 1]), 2, MPI_DOUBLE, rank + 1, 1, MPI_COMM_WORLD, &status);
-
-        for (int column = stop_col; column >= start_col; column--)
-            grid[line][column] = sin(3 * grid[line - 3][column + 2]);
-
-        // send left border
-        if (rank != 0 and line < ISIZE - 3)
-            MPI_Send(&(grid[line][start_col]), 2, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD);
+        for (int column = 0; column < ISIZE; column++)
+            grid[line][column] = sin(2 * grid[line][column]);
     }
 
-    // collect all data
-    if (rank != 0) {
-        for (int line = 3; line < ISIZE; line++) {
-            MPI_Send(&(grid[line][start_col]), stop_col - start_col + 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-        }
-    } 
-    else {
-        for (int sender_rank = 1; sender_rank < comm_size; sender_rank++) {
-            int sender_start_col = sender_rank * (JSIZE - 2) / comm_size;
-            int sender_stop_col = (sender_rank + 1) * (JSIZE - 2) / comm_size - 1;
-
-            for (int line = 3; line < ISIZE; line++) {
-                MPI_Recv(&(grid[line][sender_start_col]), sender_stop_col - sender_start_col + 1, MPI_DOUBLE, sender_rank, 1, MPI_COMM_WORLD, &status);
-            }
-        }
+    if (rank != 0)
+    {
+        for (int sending_line = start_number; sending_line <= stop_number; sending_line++)
+            MPI_Send(grid[sending_line].data(), ISIZE, MPI_DOUBLE, 0, DATA_FORWARDING, MPI_COMM_WORLD);
     }
 
+    else
+    {
+        for (int sender_rank = 1; sender_rank < comm_size; sender_rank++)
+        {
+            int sender_start_number = sender_rank * JSIZE / comm_size;
+            int sender_stop_number = (sender_rank + 1) * JSIZE / comm_size - 1;
+
+            for (int receiving_line = sender_start_number; receiving_line <= sender_stop_number; receiving_line++)
+                MPI_Recv(grid[receiving_line].data(), ISIZE, MPI_DOUBLE, sender_rank, DATA_FORWARDING, MPI_COMM_WORLD, &status);
+        }
+    }
 
     double duration = MPI_Wtime() - start_time;
 
@@ -90,11 +82,11 @@ int main(int argc, char **argv)
             }
             double start_seq = MPI_Wtime();
 
-            for (size_t i = 3; i < ISIZE; i++)
+            for (size_t i = 0; i < ISIZE; i++)
             {
-                for (size_t j = 0; j < JSIZE - 2; j++)
+                for (size_t j = 0; j < JSIZE; j++)
                 {
-                    grid_seq[i][j] = std::sin(3 * grid_seq[i - 3][j + 2]);
+                    grid_seq[i][j] = std::sin(2 * grid_seq[i][j]);;
                 }
             }
             std::cout << "Time seq: " << MPI_Wtime() - start_seq << " sec" << std::endl;
