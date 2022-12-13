@@ -61,3 +61,14 @@ extern "C" long long get_time_milliseconds()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - g_timer).count();
 }
+
+// DLC
+extern "C" int sEngine_rand()
+{
+    return rand();
+}
+
+extern "C" void sEngine_clear()
+{
+    g_window->clear(sf::Color::Black);
+}

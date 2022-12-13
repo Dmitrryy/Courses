@@ -28,3 +28,7 @@ extern "C" long long get_time_milliseconds();
 extern "C" void put_pixel(uint32_t x, uint32_t y, uint32_t rgba);
 
 extern "C" void flush();
+
+// DLC
+extern "C" int sEngine_rand();
+extern "C" void sEngine_clear();

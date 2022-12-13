@@ -28,3 +28,7 @@ long long get_time_milliseconds();
 void put_pixel(uint32_t x, uint32_t y, uint32_t rgba);
 
 void flush();
+
+// DLC
+int sEngine_rand();
+void sEngine_clear();
