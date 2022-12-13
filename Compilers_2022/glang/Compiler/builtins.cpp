@@ -441,7 +441,7 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
     // LessEqual(Integer)
     //=------------------
     auto&& le_Ty = llvm::FunctionType::get(intTy, {intTy->getPointerTo(), intTy->getPointerTo()}, false);
-    auto&& le_F = llvm::Function::Create(le_Ty, linkage, mangl_method_name(int_class_name, "Greater", {orig_int_name}), module);
+    auto&& le_F = llvm::Function::Create(le_Ty, linkage, mangl_method_name(int_class_name, "LessEqual", {orig_int_name}), module);
     le_F->setDSOLocal(true);
     {
         llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", le_F);
@@ -742,6 +742,14 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
     auto &&flushTy = llvm::FunctionType::get(builder.getVoidTy(), true);
     auto &&flushF = llvm::Function::Create(flushTy, linkage, "flush", module);
     flushF->setDSOLocal(true);
+
+    auto &&sEngine_randTy = llvm::FunctionType::get(builder.getInt32Ty(), true);
+    auto &&sEngine_randF = llvm::Function::Create(sEngine_randTy, linkage, "sEngine_rand", module);
+    sEngine_randF->setDSOLocal(true);
+    
+    auto &&sEngine_clearTy = llvm::FunctionType::get(builder.getVoidTy(), true);
+    auto &&sEngine_clearF = llvm::Function::Create(sEngine_clearTy, linkage, "sEngine_clear", module);
+    sEngine_clearF->setDSOLocal(true);
     
     // Init(width: Integer, heigth: Integer)
     //=-------------------------------------
@@ -796,6 +804,28 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
         builder.CreateRet(builder.CreateLoad(intTy, res));
     }
 
+    // GetRand()
+    //=--------------
+    auto&& GetRand_Ty = llvm::FunctionType::get(intTy, {grTy->getPointerTo()}, false);
+    auto&& GetRand_F = llvm::Function::Create(GetRand_Ty, linkage, mangl_method_name(graph_class_name, "GetRand", {}), module);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", GetRand_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a = builder.CreateAlloca(grTy->getPointerTo());
+        auto&& res = builder.CreateAlloca(intTy);
+        builder.CreateStore(GetRand_F->getArg(0), a);
+
+        auto&& ptr = builder.CreateStructGEP(intTy, res, 0);
+
+        auto&& call = builder.CreateCall(sEngine_randF, {});
+        auto&& call_e = builder.CreateZExt(call, builder.getInt64Ty());
+
+        builder.CreateStore(call_e, ptr);
+
+        builder.CreateRet(builder.CreateLoad(intTy, res));
+    }
+
     // Flush()
     //=-------
     auto&& Flush_Ty = llvm::FunctionType::get(builder.getVoidTy(), {grTy->getPointerTo()}, false);
@@ -808,6 +838,21 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
         builder.CreateStore(Flush_F->getArg(0), a);
 
         builder.CreateCall(flushF, {});
+        builder.CreateRetVoid();
+    }
+
+    // Clear()
+    //=-------
+    auto&& Clear_Ty = llvm::FunctionType::get(builder.getVoidTy(), {grTy->getPointerTo()}, false);
+    auto&& Clear_F = llvm::Function::Create(Clear_Ty, linkage, mangl_method_name(graph_class_name, "Clear", {}), module);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", Clear_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a = builder.CreateAlloca(grTy->getPointerTo());
+        builder.CreateStore(Clear_F->getArg(0), a);
+
+        builder.CreateCall(sEngine_clearF, {});
         builder.CreateRetVoid();
     }
 
