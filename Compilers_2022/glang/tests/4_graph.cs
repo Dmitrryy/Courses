@@ -1,6 +1,6 @@
 // compile:
 // glang 4_graph.cs
-// clang++ dump.ll ../../glib/SEngine.cpp -lsfml-graphics -lsfml-window -lsfml-system
+// clang++ dump.ll ../../glib/SEngine.cpp -lsfml-graphics -lsfml-window -lsfml-system -O2
 
 class Program {
     // object with methods to manage window
@@ -28,7 +28,7 @@ class Program {
                 m_y.Set(m_y.Add(1));
             }
            
-            m_graph.PutPixel(m_x, m_y, color);
+            m_graph.PutPixel(m_x, m_y, m_graph.GetRand());
 
             m_x.Set(m_x.Add(1));
 

@@ -23,5 +23,14 @@ class Program {
     
     method Program() {
         this.ifTest();
+
+        i : Integer(0);
+        while(i < 6) {
+            if(i == 4) {
+                continue;
+            }
+            i.Print();
+            i = i + 1;
+        }
     }
 }
