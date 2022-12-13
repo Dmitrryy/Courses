@@ -8,6 +8,7 @@ namespace ezg
 
 const std::string orig_int_name = "Integer";
 const std::string orig_graphics_name = "Graphics";
+const std::string orig_vector_name = "Vector";
 
 llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
     auto&& context = module->getContext();
@@ -18,6 +19,29 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
     // Integer type
     //=------------
     auto&& intTy = llvm::StructType::create({builder.getInt64Ty()}, int_class_name, false);
+
+    // Init
+    //=----
+    auto&& initInt_Ty = llvm::FunctionType::get(builder.getVoidTy(), {intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& initInt_F = llvm::Function::Create(initInt_Ty, linkage, mangl_method_name(int_class_name, "Init", {orig_int_name}), module);
+    initInt_F->setDSOLocal(true);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", initInt_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(initInt_F->getArg(0), a3);
+        builder.CreateStore(initInt_F->getArg(1), a4);
+
+        auto&& a5 = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& a6 = builder.CreateLoad(intTy, a5);
+        auto&& a7 = builder.CreateLoad(intTy->getPointerTo(), a3);
+        builder.CreateStore(a6, a7);
+
+        builder.CreateRetVoid();
+    }
 
     // Print
     //=-----
@@ -846,6 +870,126 @@ llvm::StructType *declareIntegerBuiltin(llvm::Module *module) {
         builder.CreateStore(call_e, ptr);
 
         builder.CreateRet(builder.CreateLoad(intTy, res));
+    }
+
+
+    // Vector type
+    //=-----------
+    auto&& calloc_Ty = llvm::FunctionType::get(builder.getInt8PtrTy(), {builder.getInt64Ty(), builder.getInt64Ty()}, false);
+    auto&& calloc_F = llvm::Function::Create(calloc_Ty, linkage, "calloc", module);
+    calloc_F->setDSOLocal(true);
+
+    auto&& free_Ty = llvm::FunctionType::get(builder.getVoidTy(), {builder.getInt8PtrTy()}, false);
+    auto&& free_F = llvm::Function::Create(free_Ty, linkage, "free", module);
+    free_F->setDSOLocal(true);
+    
+    
+    const std::string vector_class_name = mangl_class_name(orig_vector_name);
+    // contain pointer to heap
+    auto&& vector_Ty = llvm::StructType::create({builder.getInt8PtrTy()}, vector_class_name, false);
+    
+    // Init(size : Integer)
+    //=--------------------
+    auto&& vectorInit_Ty = llvm::FunctionType::get(builder.getVoidTy(), {vector_Ty->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& vectorInit_F = llvm::Function::Create(vectorInit_Ty, linkage, mangl_method_name(vector_class_name, "Init", {orig_int_name}), module);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", vectorInit_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& a3 = builder.CreateAlloca(vector_Ty->getPointerTo());
+        auto&& a4 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(vectorInit_F->getArg(0), a3);
+        builder.CreateStore(vectorInit_F->getArg(1), a4);
+
+        auto&& sizeLoaded = builder.CreateLoad(intTy->getPointerTo(), a4);
+        auto&& sizePtr = builder.CreateStructGEP(intTy, sizeLoaded, 0);
+        auto&& size = builder.CreateLoad(builder.getInt64Ty(), sizePtr);
+
+        auto&& heap = builder.CreateCall(calloc_F, {size, builder.getInt64(8)});
+
+        // store result
+        auto&& resLoaded = builder.CreateLoad(vector_Ty->getPointerTo(), a3);
+        auto&& resPtr = builder.CreateStructGEP(vector_Ty, resLoaded, 0);
+        builder.CreateStore(heap, resPtr);
+
+        builder.CreateRetVoid();
+    }
+
+    // Set(id : Integer, val : Integer)
+    //=--------------------------------
+    auto&& vectorSet_Ty = llvm::FunctionType::get(builder.getVoidTy(), {vector_Ty->getPointerTo(), intTy->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& vectorSet_F = llvm::Function::Create(vectorSet_Ty, linkage, mangl_method_name(vector_class_name, "Set", {orig_int_name, orig_int_name}), module);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", vectorSet_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& arg0 = builder.CreateAlloca(vector_Ty->getPointerTo());
+        auto&& arg1 = builder.CreateAlloca(intTy->getPointerTo());
+        auto&& arg2 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(vectorSet_F->getArg(0), arg0); // this
+        builder.CreateStore(vectorSet_F->getArg(1), arg1); // id
+        builder.CreateStore(vectorSet_F->getArg(2), arg2); // val
+
+        // load id
+        auto&& arg1_load = builder.CreateLoad(intTy->getPointerTo(), arg1);
+        auto&& id_ptr = builder.CreateStructGEP(intTy, arg1_load, 0);
+        auto&& id = builder.CreateLoad(builder.getInt64Ty(), id_ptr);
+
+        // load val
+        auto&& arg2_load = builder.CreateLoad(intTy->getPointerTo(), arg2);
+        auto&& val_ptr = builder.CreateStructGEP(intTy, arg2_load, 0);
+        auto&& val = builder.CreateLoad(builder.getInt64Ty(), val_ptr);
+
+        // load ptr
+        auto&& arg0_load = builder.CreateLoad(vector_Ty->getPointerTo(), arg0);
+        auto&& heap_pp = builder.CreateStructGEP(vector_Ty, arg0_load, 0);
+        auto&& heap_p = builder.CreateLoad(builder.getInt8PtrTy(), heap_pp);
+        auto&& heap = builder.CreateBitCast(heap_p, builder.getInt64Ty()->getPointerTo());
+
+        auto&& target_Ptr = builder.CreateGEP(builder.getInt64Ty(), heap, id);
+        builder.CreateStore(val, target_Ptr);
+
+        builder.CreateRetVoid();
+    }
+
+    // Get(id : Integer) : Integer
+    //=---------------------------
+    auto&& vectorGet_Ty = llvm::FunctionType::get(intTy, {vector_Ty->getPointerTo(), intTy->getPointerTo()}, false);
+    auto&& vectorGet_F = llvm::Function::Create(vectorGet_Ty, linkage, mangl_method_name(vector_class_name, "Get", {orig_int_name}), module);
+    {
+        llvm::BasicBlock *entryBB = llvm::BasicBlock::Create(context, "", vectorGet_F);
+        builder.SetInsertPoint(entryBB);
+
+        auto&& arg0 = builder.CreateAlloca(vector_Ty->getPointerTo());
+        auto&& arg1 = builder.CreateAlloca(intTy->getPointerTo());
+
+        builder.CreateStore(vectorGet_F->getArg(0), arg0);
+        builder.CreateStore(vectorGet_F->getArg(1), arg1);
+
+        auto&& res = builder.CreateAlloca(intTy);
+        
+        // load id
+        auto&& arg1_load = builder.CreateLoad(intTy->getPointerTo(), arg1);
+        auto&& id_ptr = builder.CreateStructGEP(intTy, arg1_load, 0);
+        auto&& id = builder.CreateLoad(builder.getInt64Ty(), id_ptr);
+
+        // load ptr
+        auto&& arg0_load = builder.CreateLoad(vector_Ty->getPointerTo(), arg0);
+        auto&& heap_pp = builder.CreateStructGEP(vector_Ty, arg0_load, 0);
+        auto&& heap_p = builder.CreateLoad(builder.getInt8PtrTy(), heap_pp);
+        auto&& heap = builder.CreateBitCast(heap_p, builder.getInt64Ty()->getPointerTo());
+
+        auto&& res_Ptr = builder.CreateGEP(builder.getInt64Ty(), heap, id);
+        auto&& res_int = builder.CreateLoad(builder.getInt64Ty(), res_Ptr);
+
+        // store result
+        auto&& gep = builder.CreateStructGEP(intTy, res, 0);
+        builder.CreateStore(res_int, gep);
+
+        auto&& res_load = builder.CreateLoad(intTy, res);
+        builder.CreateRet(res_load);
     }
 
     return nullptr;

@@ -3,8 +3,6 @@
 // clang++ dump.ll ../../glib/SEngine.cpp -lsfml-graphics -lsfml-window -lsfml-system
 
 class Program {
-    // object with methods to manage window
-    m_graph: Graphics;
 
     m_width: Integer;
     m_heigth: Integer;
@@ -13,8 +11,7 @@ class Program {
     //=-------
 
     method pack_4ui8_to_ui32(r: Integer, g: Integer, b: Integer, a: Integer) : Integer {
-        result : Integer;
-        result.Set(0);
+        result : Integer(0);
         result = result | (a);
         result = result | (b << 8);
         result = result | (g << 16);
@@ -35,10 +32,8 @@ class Program {
     /// @param x - arg
     /// @return int32_t - approximate value of cos * 10^3.
     method int_cos(x: Integer) : Integer {
-        fracted : Integer;
-        per_id : Integer;
-        sign : Integer;
-        y : Integer;
+        fracted : Integer(x % 1000);
+        per_id : Integer((this.abs_dummy(x) % 4000) / 1000);
 
         fracted = x % 1000;
 
@@ -47,19 +42,19 @@ class Program {
             fracted = 1000 - fracted;
         }
         
-        sign = -1;
+        sign : Integer(-1);
         if((per_id == 1) | (per_id == 2)) {
             sign = 1;
         }
-        y = (fracted * fracted) / 1000 - 1000;
+        y : Integer((fracted * fracted) / 1000 - 1000);
         return y * sign;
     }
 
 
     method palette_int(t: Integer, d1: Integer, d2: Integer, d3: Integer) : Integer {
-        x : Integer;
-        y : Integer;
-        z : Integer;
+        x : Integer(0);
+        y : Integer(0);
+        z : Integer(0);
 
         x = (500 + 500 * this.int_cos(628318 * (1000 * t / 1000 + d1) / 100000) / 1000) / 5;
         y = (500 + 500 * this.int_cos(628318 * (1000 * t / 1000 + d2) / 100000) / 1000) / 5;
@@ -70,23 +65,18 @@ class Program {
 
 
     method shader(x: Integer, y: Integer, time: Integer) : Integer {
-        result : Integer;
-        uv_x : Integer;
-        uv_y : Integer;
-        r : Integer;
-        c1 : Integer;
-        c2 : Integer;
-        z1 : Integer;
-        z2 : Integer;
-        maxIteration : Integer;
-        iteration : Integer;
+        result : Integer(0x000000FF);
 
-        result = 0x000000FF;
+        r : Integer(0);
+        c1 : Integer(0);
+        c2 : Integer(0);
+        z1 : Integer(0);
+        z2 : Integer(0);
 
-        uv_x = x * 1000 / m_width;
-        uv_y = y * 1000 / m_heigth;
+        uv_x : Integer(x * 1000 / m_width);
+        uv_y : Integer(y * 1000 / m_heigth);
         
-        maxIteration = 30;
+        maxIteration : Integer(30);
 
         r = 788 * (this.int_cos((time / 3) - 2000) / 5 + 850) / 1000; //10^-3
 
@@ -96,10 +86,9 @@ class Program {
         z1 = 3 * (uv_x - 500);
         z2 = 2 * (uv_y - 500);
 
-        iteration = 0;
+        iteration : Integer(0);
         while(iteration < maxIteration) {
-            z1_tmp : Integer;
-            z1_tmp = (z1 * z1 - z2 * z2) / 1000 + c1;
+            z1_tmp : Integer((z1 * z1 - z2 * z2) / 1000 + c1);
             z2 = (z2 * z1 + z1 * z2) / 1000 + c2;
             z1 = z1_tmp;
             if((z1 * z1 + z2 * z2) / 10000 > 4000) {
@@ -125,11 +114,13 @@ class Program {
         // open window
         m_width.Set(1024);
         m_heigth.Set(576);
-        m_graph.Init(m_width, m_heigth);
 
-        time : Integer;
-        x : Integer;
-        y : Integer;
+        // object with methods to manage window
+        m_graph: Graphics(m_width, m_heigth);
+
+        time : Integer(0);
+        x : Integer(0);
+        y : Integer(0);
         // loop while window is open
         while(m_graph.WindowIsOpen()) {
             time.Set(m_graph.GetTime() / 2);

@@ -6,7 +6,7 @@ class Program {
         // print only 2 times (6)
         m_int.Set(1);
         if(m_int) {
-            loc : Integer;
+            loc : Integer(0);
             loc.Set(6);
             loc.Print();
             

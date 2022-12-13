@@ -17,9 +17,8 @@ class Program {
         m_x.Set(0);
         m_y.Set(0);
 
-        color : Integer;
         // blue color
-        color.Set(0x0000FFFF);
+        color : Integer(0x0000FFFF);
         // loop while window is open
         while(m_graph.WindowIsOpen()) {
             m_graph.GetTime().Print();

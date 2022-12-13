@@ -14,10 +14,8 @@ class Program {
 
 
     method Program() {
-        a : Integer;
-        b : Integer;
-        a.Set(10);
-        b.Set(15);
+        a : Integer(10);
+        b : Integer(15);
         this.arifmet(a, b);
     }
 }

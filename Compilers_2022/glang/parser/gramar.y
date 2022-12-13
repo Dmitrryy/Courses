@@ -369,7 +369,7 @@ scope_body
 
 // only inside function body!
 variable_declaration
-: IDENTIFIER COLON type SCOLON {
+: IDENTIFIER COLON type LPARENTHESES arguments RPARENTHESES SCOLON {
     auto&& a = g_builder->CreateAlloca($3);
 
     idInfo info {
@@ -378,6 +378,32 @@ variable_declaration
         .to_load = false
     };
     g_nameTable.declare(g_nameTable.getCurTableId(), $1, info);
+
+    // create Init call
+    //=----------------
+    auto&& demangled_type = ezg::demangl_class_name(info.type->getName().str());
+
+    std::vector< std::string > args_type;
+    std::vector< llvm::Value* > args_val = {a};
+    args_type.reserve($5.size());
+    args_val.reserve($5.size() + 1);
+    for(auto&& arg: $5) {
+        args_type.push_back(arg.second);
+        args_val.push_back(arg.first);
+    }
+
+    auto&& callee = g_module->getFunction(ezg::mangl_method_name(demangled_type, "Init", {args_type}));
+    if (!callee) {
+        throw syntax_error(@3, "no method named 'Init' in '" + demangled_type +"'");
+    }
+    auto&& a6 = g_builder->CreateCall(callee, args_val);
+
+
+    auto&& ret_Ty = dyn_cast<llvm::StructType>(callee->getReturnType());
+    if(ret_Ty) {
+        // alloca to allow take pointer to callInst result
+        throw syntax_error(@4, "Init function shoudn,t retorn something!");
+    }
 }
 ;
 

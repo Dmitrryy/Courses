@@ -52,8 +52,7 @@ class Program {
         // all methods return object by copy
         m_int2.Print();
         {
-            loc : Integer;
-            loc.Set(88);
+            loc : Integer(88);
             loc.Print();
         }
         //loc.Print(); // ERROR: loc undefined

@@ -8,11 +8,11 @@ class FibGenerator {
     }
 
     method Next() : Integer {
-        next : Integer;
-        next.Set(m_a.Add(m_b));
+        next : Integer(m_a.Add(m_b));
+        //next.Set(m_a.Add(m_b));
         
-        tmp_a : Integer;
-        tmp_a.Set(m_a);
+        tmp_a : Integer(m_a);
+        //tmp_a.Set(m_a);
         m_a.Set(m_b);
         m_b.Set(next);
 
@@ -21,15 +21,15 @@ class FibGenerator {
 }
 
 class Program {
-    m_fg : FibGenerator;
+    m_a : Integer;
 
     method Program() {
-        target : Integer;
-        target.Set(20);
-
-        m_fg.Init(1, 1);
+        target : Integer(20);
+        //target.Set(20);
+        fg : FibGenerator(1, 1);
+        //m_fg.Init(1, 1);
         while(target) {
-            m_fg.Next().Print();
+            fg.Next().Print();
 
             target.Set(target.Sub(1));
         }

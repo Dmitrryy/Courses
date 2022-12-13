@@ -2,11 +2,11 @@ class Program {
     m_int : Integer;
 
     method arifmet() {
-        a : Integer;
-        b : Integer;
-        c : Integer;
-        a.Set(5);
-        b.Set(7);
+        a : Integer(5);
+        b : Integer(7);
+        c : Integer(0);
+        //a.Set(5);
+        //b.Set(7);
 
         // equal:
         // c.Set(a.Add(b));
@@ -26,8 +26,8 @@ class Program {
     }
 
     method Get() : Integer {
-        a : Integer;
-        a.Set(10);
+        a : Integer(10);
+        //a.Set(10);
         return a;
     }
 
